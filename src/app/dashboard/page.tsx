@@ -22,7 +22,7 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { farmers, visits, purchases } = useMockData();
+  const { farmers, visits } = useMockData();
 
   // Calculate total dues and payments
   const totalDue = farmers.reduce((sum, farmer) => sum + farmer.totalDue, 0);

@@ -52,7 +52,9 @@ export function ImageCarousel({ images }: ImageCarouselProps) {
                   index === currentIndex ? 'bg-white' : 'bg-white/50'
                 }`}
                 onClick={() => setCurrentIndex(index)}
-              ></button>
+              >
+                e
+              </button>
             ))}
           </div>
         </>
