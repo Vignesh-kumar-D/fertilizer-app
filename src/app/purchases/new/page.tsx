@@ -126,7 +126,7 @@ export default function AddPurchasePage() {
                         </FormControl>
                         <SelectContent
                           position="popper"
-                          className="z-50 w-full min-w-[200px]"
+                          className="bg-white"
                           align="start"
                         >
                           {farmers.map((farmer: Farmer) => (
@@ -277,7 +277,7 @@ export default function AddPurchasePage() {
                         </FormControl>
                         <SelectContent
                           position="popper"
-                          className="z-50 w-full min-w-[200px]"
+                          className="bg-white"
                           align="start"
                         >
                           <SelectItem value="cash">Cash</SelectItem>
