@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Calendar, IndianRupee, Tag } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import FormattedDate from '@/lib/FormattedDate';
 
 export default function PurchaseDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -73,8 +74,8 @@ export default function PurchaseDetailsPage() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Date:</span>
                 </div>
-                <span>{new Date(purchase.date).toLocaleDateString()}</span>
               </div>
+              <FormattedDate date={purchase.date} />
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <IndianRupee className="h-4 w-4 text-muted-foreground" />

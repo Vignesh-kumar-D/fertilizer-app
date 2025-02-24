@@ -8,6 +8,7 @@ import { Plus, IndianRupee } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import FormattedDate from '@/lib/FormattedDate';
 
 export default function PurchasesPage() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function PurchasesPage() {
                       {farmer?.village}
                     </div>
                     <div className="text-sm mt-1">
-                      {new Date(purchase.date).toLocaleDateString()}
+                      <FormattedDate date={purchase.date} />
                     </div>
                     <div className="flex gap-2 mt-2">
                       {purchase.items.map((item, index) => (
