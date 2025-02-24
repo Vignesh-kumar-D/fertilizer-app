@@ -105,11 +105,6 @@
   }
 }
 
-.select-content {
-  position: absolute;
-  z-index: 100;
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
