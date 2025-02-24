@@ -110,9 +110,9 @@ export function Header() {
 
         <div className="flex items-center space-x-4">
           {/* User Profile Button */}
-          <Button variant="ghost" size="icon" className="hidden md:flex">
+          <Link key={'profile'} href={'/profile'} className="hidden md:flex">
             <User className="h-5 w-5" />
-          </Button>
+          </Link>
 
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
