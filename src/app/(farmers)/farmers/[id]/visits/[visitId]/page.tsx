@@ -14,17 +14,14 @@ import {
   ListChecks,
   Circle,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-export default function VisitDetailPage({
-  params,
-}: {
-  params: { id: string; visitId: string };
-}) {
+export default function VisitDetailPage() {
   const router = useRouter();
+  const { visitId } = useParams<{ id: string; visitId: string }>();
   const { getFarmerById, getVisitById } = useMockData();
-  const visit = getVisitById(params.visitId);
+  const visit = getVisitById(visitId);
   const farmer = visit ? getFarmerById(visit.farmerId) : null;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 

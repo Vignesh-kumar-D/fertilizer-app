@@ -32,6 +32,7 @@ const formSchema = z.object({
   cropHealth: z.enum(['good', 'average', 'poor']),
   notes: z.string().min(1, 'Notes are required'),
   recommendations: z.string().min(1, 'Recommendations are required'),
+  images: z.array(z.string()).default([]),
 });
 
 export default function AddVisit({ paramId }: { paramId: string }) {

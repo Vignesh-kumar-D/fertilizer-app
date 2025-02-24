@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useMockData } from '@/lib/mock-data-context';
 import { toast } from 'sonner';
 import { ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
@@ -89,10 +89,11 @@ const formSchema = z.object({
   images: z.array(z.string()).default([]),
 });
 
-export default function AddVisitPage({ params }: { params: { id: string } }) {
+export default function AddVisitPage() {
   const router = useRouter();
   const { getFarmerById, addVisit } = useMockData();
-  const farmer = getFarmerById(params.id);
+  const { id } = useParams<{ id: string }>();
+  const farmer = getFarmerById(id);
   const [uploading, setUploading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -145,11 +146,11 @@ export default function AddVisitPage({ params }: { params: { id: string } }) {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       addVisit({
-        farmerId: params.id,
+        farmerId: id,
         ...values,
       });
       toast.success('Visit added successfully');
-      router.push(`/farmers/${params.id}/visits`);
+      router.push(`/farmers/${id}/visits`);
     } catch {
       toast.error('Failed to add visit');
     }
@@ -342,7 +343,7 @@ export default function AddVisitPage({ params }: { params: { id: string } }) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push(`/farmers/${params.id}/visits`)}
+              onClick={() => router.push(`/farmers/${id}/visits`)}
             >
               Cancel
             </Button>

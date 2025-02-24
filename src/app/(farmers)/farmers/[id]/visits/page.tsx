@@ -9,17 +9,14 @@ import {
   ChevronRight,
   Image as ImageIcon,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
-export default function FarmerVisitsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function FarmerVisitsPage() {
   const router = useRouter();
   const { getFarmerById, getFarmerVisits } = useMockData();
-  const farmer = getFarmerById(params.id);
-  const visits = getFarmerVisits(params.id);
+  const { id } = useParams<{ id: string }>();
+  const farmer = getFarmerById(id);
+  const visits = getFarmerVisits(id);
 
   if (!farmer) {
     return <div>Farmer not found</div>;
