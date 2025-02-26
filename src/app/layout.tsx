@@ -52,7 +52,52 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
+      <head>
+        {/* Other meta tags */}
+
+        {/* Enable standalone mode for iOS */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
+
+        {/* Set the app icon for iOS */}
+        <link rel="apple-touch-icon" href="/images/icon_1024x1024.png" />
+
+        {/* Splash screen for iPhone 12, 13, 14 Pro */}
+        <link
+          rel="apple-touch-startup-image"
+          href="/images/icon_1170x2532.png"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
+        />
+
+        {/* Since you only have one splash image size, we'll use it for all devices */}
+        {/* You might want to create more sizes later for better device coverage */}
+        <link
+          rel="apple-touch-startup-image"
+          href="/images/icon_1170x2532.png"
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+        />
+
+        <link
+          rel="apple-touch-startup-image"
+          href="/images/icon_1170x2532.png"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)"
+        />
+
+        <link
+          rel="apple-touch-startup-image"
+          href="/images/icon_1170x2532.png"
+          media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)"
+        />
+
+        <link
+          rel="apple-touch-startup-image"
+          href="/images/icon_1170x2532.png"
+          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+        />
+      </head>
       <body
         className={cn(
           'min-h-screen bg-background font-sans antialiased',
