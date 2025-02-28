@@ -8,7 +8,7 @@ export interface Farmer {
   name: string;
   phone: string;
   image: string;
-  village: string;
+  location: string;
   crops: Crop[]; // Now an array of Crop objects
   totalDue: number;
   totalPaid: number;
@@ -44,4 +44,10 @@ export interface Purchase {
   notes?: string;
   createdBy: string;
   createdAt: string;
+}
+export interface CropActivity {
+  id: string;
+  type: 'visit' | 'purchase';
+  date: string;
+  details: Visit | Purchase;
 }

@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Edit2, Phone, MapPin, Calendar } from 'lucide-react';
+import { Edit2, Phone, MapPin, Plus, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { FarmerHeader } from './farmer-header';
 import { useMockData } from '@/lib/mock-data-context';
 import FormattedDate from '@/lib/FormattedDate';
+import { Badge } from '@/components/ui/badge';
+import { Crop } from '@/types';
 
 export function FarmerList() {
   const router = useRouter();
@@ -18,7 +20,10 @@ export function FarmerList() {
     (farmer) =>
       farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       farmer.phone.includes(searchTerm) ||
-      farmer.village.toLowerCase().includes(searchTerm.toLowerCase())
+      farmer.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      farmer.crops.some((crop) =>
+        crop.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
   );
 
   return (
@@ -29,7 +34,7 @@ export function FarmerList() {
         {filteredFarmers.map((farmer) => (
           <Card
             key={farmer.id}
-            className="hover:border-primary/50 transition-colors"
+            className="hover:border-primary/50 transition-colors relative group"
           >
             <CardContent className="p-4">
               <div className="flex justify-between items-start">
@@ -41,24 +46,18 @@ export function FarmerList() {
                   </div>
                   <div className="flex items-center text-muted-foreground mt-1">
                     <MapPin className="h-4 w-4 mr-2" />
-                    <span>{farmer.village}</span>
+                    <span>{farmer.location}</span>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => router.push(`/farmers/${farmer.id}/edit`)}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => router.push(`/farmers/${farmer.id}/visits`)}
-                  className="text-primary"
-                >
-                  <Calendar className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push(`/farmers/${farmer.id}/edit`)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <div className="mt-4 space-y-2">
@@ -80,19 +79,63 @@ export function FarmerList() {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                {farmer.crops.map((crop) => (
-                  <span
-                    key={crop.id}
-                    className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
-                  >
-                    {crop.name}
-                  </span>
-                ))}
+              <div className="mt-4">
+                <div className="flex items-center text-sm font-medium mb-2">
+                  <Leaf className="h-4 w-4 mr-1 text-green-600" />
+                  Crops
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {farmer.crops.map((crop: Crop) => (
+                    <Badge
+                      key={crop.id}
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-secondary/80 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/farmers/${farmer.id}/crop/${crop.id}`);
+                      }}
+                    >
+                      {crop.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/visits/new?farmerId=${farmer.id}`);
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add Visit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/purchases/new?farmerId=${farmer.id}`);
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add Purchase
+                </Button>
               </div>
             </CardContent>
           </Card>
         ))}
+
+        {filteredFarmers.length === 0 && (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            No farmers found
+          </div>
+        )}
       </div>
     </div>
   );

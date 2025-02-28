@@ -21,7 +21,7 @@ export default function VisitsPage() {
 
     return (
       farmer?.name.toLowerCase().includes(searchLower) ||
-      farmer?.village.toLowerCase().includes(searchLower) ||
+      farmer?.location.toLowerCase().includes(searchLower) ||
       visit.crop.name.toLowerCase().includes(searchLower) ||
       visit.notes.toLowerCase().includes(searchLower) ||
       visit.recommendations.toLowerCase().includes(searchLower)
@@ -69,7 +69,7 @@ export default function VisitsPage() {
                   <div>
                     <div className="font-medium">{farmer?.name}</div>
                     <div className="text-muted-foreground text-sm">
-                      {farmer?.village}
+                      {farmer?.location}
                     </div>
                     <div className="flex items-center gap-1 mt-1 text-sm">
                       <Leaf className="h-3 w-3 text-green-600" />

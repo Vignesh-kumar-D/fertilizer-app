@@ -1,7 +1,7 @@
 {
-  "id": "F_A",
-  "short_name": "Visit tracker",
-  "name": "Visit tracker for farming",
+  "id": "V_A_S",
+  "short_name": "Vetri Agro",
+  "name": "Vetri Agro services",
   "description": "It helps to keep track of field visits done to meet to feel the crops and summarizes that data",
   "icons": [
     {

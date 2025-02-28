@@ -53,7 +53,7 @@ export default function VisitDetailPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Visit Details - {farmer.name}</h1>
-          <p className="text-muted-foreground">{farmer.village}</p>
+          <p className="text-muted-foreground">{farmer.location}</p>
         </div>
       </div>
 

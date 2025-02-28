@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: 'F_A',
-    short_name: 'Visit tracker',
-    name: 'Visit tracker for farming',
+    id: 'V_A_S',
+    short_name: 'Vetri Agro services',
+    name: 'Visit tracker for fertilizer retail',
     description:
       'It helps to keep track of field visits done to meet to feel the crops and summarizes that data',
     icons: [

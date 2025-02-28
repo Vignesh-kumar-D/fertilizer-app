@@ -75,7 +75,7 @@ export function Header() {
                 'tracking-tight'
               )}
             >
-              FertilizerApp
+              Vetri Agro Services
             </span>
             <span
               className={cn(
@@ -83,7 +83,7 @@ export function Header() {
                 'tracking-tight'
               )}
             >
-              FA
+              Vetri Agro
             </span>
           </Link>
         </div>

@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMockData } from '@/lib/mock-data-context';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
@@ -45,15 +45,17 @@ const formSchema = z.object({
 
 export default function AddPurchasePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { farmers, getCropById, getFarmerById, addPurchase } = useMockData();
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
   const [farmerCrops, setFarmerCrops] = useState<Crop[]>([]);
-
+  const initialFarmerId = searchParams.get('farmerId');
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
       items: '',
+      farmerId: initialFarmerId || '',
       quantity: 1,
       totalAmount: 0,
       amountPaid: 0,
@@ -143,7 +145,7 @@ export default function AddPurchasePage() {
                         >
                           {farmers.map((farmer) => (
                             <SelectItem key={farmer.id} value={farmer.id}>
-                              {farmer.name} - {farmer.village}
+                              {farmer.name} - {farmer.location}
                             </SelectItem>
                           ))}
                         </SelectContent>

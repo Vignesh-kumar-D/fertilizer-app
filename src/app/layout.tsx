@@ -7,9 +7,9 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { MockDataProvider } from '@/lib/mock-data-context';
 
-const APP_NAME = 'FertilizerApp';
-const APP_DEFAULT_TITLE = 'FertilizerApp';
-const APP_TITLE_TEMPLATE = 'FertilizerApp';
+const APP_NAME = 'Vetri Agro services';
+const APP_DEFAULT_TITLE = 'Vetri Agro services';
+const APP_TITLE_TEMPLATE = 'Vetri Agro services';
 const APP_DESCRIPTION = 'Track and manage farmer purchases and visits';
 
 const inter = Inter({ subsets: ['latin'] });

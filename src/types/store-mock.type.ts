@@ -1,4 +1,4 @@
-import { Crop, Farmer, Purchase, Visit } from '.';
+import { Crop, Farmer, Purchase, Visit, CropActivity } from '.';
 
 export interface MockDataContextType {
   farmers: Farmer[];
@@ -7,7 +7,7 @@ export interface MockDataContextType {
   crops: Crop[]; // Added crops array
 
   // Crop functions
-  addCrop: (crop: Omit<Crop, 'id'>) => void;
+  addCrop: (crop: Omit<Crop, 'id'>) => Crop;
   getCropById: (id: string) => Crop | undefined;
 
   // Farmer functions
@@ -41,12 +41,7 @@ export interface MockDataContextType {
   getPurchaseById: (id: string) => Purchase | undefined;
 
   // Combined crop activity function
-  getCropActivities: (cropId: string) => Array<{
-    id: string;
-    type: 'visit' | 'purchase';
-    date: string;
-    details: Visit | Purchase;
-  }>;
+  getCropActivities: (cropId: string) => Array<CropActivity>;
   getFarmerCropActivities: (
     farmerId: string,
     cropId: string

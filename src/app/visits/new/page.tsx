@@ -28,58 +28,9 @@ import { useMockData } from '@/lib/mock-data-context';
 import { toast } from 'sonner';
 import { ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
 import { Crop, Farmer } from '@/types';
+import { compressImage } from '@/lib/utils';
 
 // Image compression utility
-const compressImage = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'));
-          return;
-        }
-
-        // Calculate dimensions
-        let width = img.width;
-        let height = img.height;
-        const maxDimension = 1200;
-
-        if (width > height && width > maxDimension) {
-          height = (height * maxDimension) / width;
-          width = maxDimension;
-        } else if (height > maxDimension) {
-          width = (width * maxDimension) / height;
-          height = maxDimension;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-
-        // Check size (2MB limit)
-        const base64Size = compressedBase64.length * (3 / 4) - 2;
-        if (base64Size > 2 * 1024 * 1024) {
-          reject(new Error('Compressed image still exceeds 2MB'));
-          return;
-        }
-
-        resolve(compressedBase64);
-      };
-    };
-
-    reader.onerror = (error) => reject(error);
-  });
-};
 
 const formSchema = z.object({
   farmerId: z.string().min(1, 'Please select a farmer'),
@@ -217,7 +168,7 @@ export default function AddVisitPage() {
           <h1 className="text-2xl font-bold">Add New Visit</h1>
           {selectedFarmer && (
             <p className="text-muted-foreground">
-              {selectedFarmer.name} - {selectedFarmer.village}
+              {selectedFarmer.name} - {selectedFarmer.location}
             </p>
           )}
         </div>
@@ -245,7 +196,7 @@ export default function AddVisitPage() {
                     <SelectContent className="bg-white">
                       {farmers.map((farmer) => (
                         <SelectItem key={farmer.id} value={farmer.id}>
-                          {farmer.name} - {farmer.village}
+                          {farmer.name} - {farmer.location}
                         </SelectItem>
                       ))}
                     </SelectContent>
