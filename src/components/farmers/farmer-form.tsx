@@ -317,11 +317,12 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
                   >
                     <Command>
                       <CommandInput
-                        placeholder="Search crops..."
                         value={searchTerm}
+                        placeholder="Search crops..."
                         onValueChange={setSearchTerm}
                         className="bg-white h-9"
                       />
+
                       <CommandList className="bg-white max-h-[200px] overflow-auto">
                         <CommandEmpty className="py-2">
                           {searchTerm && !showAddCrop ? (
@@ -342,25 +343,32 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
                             </p>
                           )}
                         </CommandEmpty>
+
                         <CommandGroup>
-                          {filteredCrops.map((crop) => (
-                            <CommandItem
-                              key={crop.id}
-                              value={crop.name}
-                              onSelect={() => handleSelectCrop(crop)}
-                              className="cursor-pointer"
-                            >
-                              <Check
-                                className={cn(
-                                  'mr-2 h-4 w-4',
-                                  selectedCrops.some((c) => c.id === crop.id)
-                                    ? 'opacity-100'
-                                    : 'opacity-0'
-                                )}
-                              />
-                              {crop.name}
-                            </CommandItem>
-                          ))}
+                          {filteredCrops.map((crop) => {
+                            return (
+                              <>
+                                <CommandItem
+                                  key={crop.id}
+                                  value={crop.name}
+                                  onSelect={() => handleSelectCrop(crop)}
+                                  className="cursor-pointer"
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      selectedCrops.some(
+                                        (c) => c.id === crop.id
+                                      )
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                    )}
+                                  />
+                                  {crop.name}
+                                </CommandItem>
+                              </>
+                            );
+                          })}
                         </CommandGroup>
                       </CommandList>
                     </Command>

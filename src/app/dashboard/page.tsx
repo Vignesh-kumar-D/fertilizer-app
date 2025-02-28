@@ -263,7 +263,7 @@ export default function DashboardPage() {
                     <div>
                       <div className="font-medium">{farmer.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {farmer.village}
+                        {farmer.location}
                       </div>
                       <div className="text-sm mt-1">
                         Last Visit:{' '}

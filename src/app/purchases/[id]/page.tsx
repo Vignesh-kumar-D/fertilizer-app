@@ -109,12 +109,7 @@ export default function PurchaseDetailsPage() {
                 </div>
                 {getStatusBadge()}
               </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Payment Mode:</span>
-                </div>
-                <span className="capitalize">{purchase.paymentMode}</span>
-              </div>
+              <div className="flex justify-between items-center"></div>
             </div>
           </CardContent>
         </Card>
@@ -131,7 +126,7 @@ export default function PurchaseDetailsPage() {
             >
               <div className="flex justify-between items-center">
                 <span className="font-medium text-lg">{farmer.name}</span>
-                <Badge variant="outline">{farmer.village}</Badge>
+                <Badge variant="outline">{farmer.location}</Badge>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Phone:</span>
