@@ -14,6 +14,7 @@ export const initialFarmers: Farmer[] = [
     name: 'Rajesh Kumar',
     phone: '9876543210',
     village: 'Greenville',
+    image: '',
     crops: [
       { id: 'crop1', name: 'Wheat' },
       { id: 'crop2', name: 'Rice' },
@@ -28,6 +29,7 @@ export const initialFarmers: Farmer[] = [
     id: '2',
     name: 'Suresh Patel',
     phone: '9876543211',
+    image: '',
     village: 'Bluetown',
     crops: [
       { id: 'crop3', name: 'Cotton' },

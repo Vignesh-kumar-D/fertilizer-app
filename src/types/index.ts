@@ -7,6 +7,7 @@ export interface Farmer {
   id: string;
   name: string;
   phone: string;
+  image: string;
   village: string;
   crops: Crop[]; // Now an array of Crop objects
   totalDue: number;
