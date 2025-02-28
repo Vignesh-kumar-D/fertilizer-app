@@ -230,14 +230,14 @@ export default function AddPurchasePage() {
                   name="quantity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Quantity</FormLabel>
+                      <FormLabel>Quantity (in litres)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value))
-                          }
+                          onChange={(e) => {
+                            field.onChange(parseFloat(e.target.value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -304,7 +304,11 @@ export default function AddPurchasePage() {
                     <FormItem>
                       <FormLabel>Remaining Amount</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} disabled />
+                        <Input
+                          type="number"
+                          value={Math.max(0, field.value)}
+                          disabled
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -4,7 +4,7 @@
 import { useMockData } from '@/lib/mock-data-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, IndianRupee } from 'lucide-react';
+import { Plus, IndianRupee, Leaf } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
@@ -22,6 +22,7 @@ export default function PurchasesPage() {
     return (
       farmer?.name.toLowerCase().includes(searchLower) ||
       farmer?.village.toLowerCase().includes(searchLower) ||
+      purchase.crop.name.toLowerCase().includes(searchLower) ||
       purchase.items.some((item) => item.toLowerCase().includes(searchLower))
     );
   });
@@ -50,7 +51,7 @@ export default function PurchasesPage() {
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredPurchases.map((purchase) => {
           const farmer = getFarmerById(purchase.farmerId);
 
@@ -67,18 +68,14 @@ export default function PurchasesPage() {
                     <div className="text-muted-foreground text-sm">
                       {farmer?.village}
                     </div>
+                    <div className="flex items-center gap-1 mt-1 text-sm">
+                      <Leaf className="h-3 w-3 text-green-600" />
+                      <span className="text-green-700">
+                        {purchase.crop.name}
+                      </span>
+                    </div>
                     <div className="text-sm mt-1">
                       <FormattedDate date={purchase.date} />
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      {purchase.items.map((item, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
-                        >
-                          {item}
-                        </span>
-                      ))}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -88,39 +85,58 @@ export default function PurchasesPage() {
                     </div>
                     <div
                       className={`px-2 py-1 rounded-full text-sm ${
-                        purchase.remainingAmount === 0
+                        purchase.remainingAmount <= 0
                           ? 'bg-green-100 text-green-800'
                           : purchase.amountPaid > 0
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {purchase.remainingAmount === 0
-                        ? 'Paid'
-                        : purchase.amountPaid > 0
-                        ? 'Partial'
-                        : 'Pending'}
+                      {purchase.remainingAmount > 0 ? 'Partial' : 'Paid'}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                <div className="mt-2">
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {purchase.items.slice(0, 2).map((item, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                    {purchase.items.length > 2 && (
+                      <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
+                        +{purchase.items.length - 2} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Amount Paid:</span>
+                    <span className="text-muted-foreground">Paid:</span>
                     <span className="ml-2 font-medium text-green-600">
                       ₹{purchase.amountPaid}
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Remaining:</span>
+                    <span className="text-muted-foreground">Due:</span>
                     <span className="ml-2 font-medium text-red-600">
-                      ₹{purchase.remainingAmount}
+                      ₹
+                      {purchase.remainingAmount > 0
+                        ? purchase.remainingAmount
+                        : 0}
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Payment Mode:</span>
-                    <span className="ml-2 capitalize">
-                      {purchase.paymentMode}
+                    <span className="text-muted-foreground">
+                      Qty (in litres):
+                    </span>
+                    <span className="ml-2 font-medium">
+                      {purchase.quantity}
                     </span>
                   </div>
                 </div>
@@ -130,7 +146,7 @@ export default function PurchasesPage() {
         })}
 
         {filteredPurchases.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground col-span-full">
             No purchases found
           </div>
         )}
