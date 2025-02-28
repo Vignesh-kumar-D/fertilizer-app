@@ -83,10 +83,10 @@ export function FarmerList() {
               <div className="mt-4 flex flex-wrap gap-2">
                 {farmer.crops.map((crop) => (
                   <span
-                    key={crop}
+                    key={crop.id}
                     className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
                   >
-                    {crop}
+                    {crop.name}
                   </span>
                 ))}
               </div>

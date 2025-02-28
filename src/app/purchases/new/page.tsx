@@ -1,7 +1,7 @@
 // src/app/purchases/new/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,71 +26,83 @@ import {
 import { useRouter } from 'next/navigation';
 import { useMockData } from '@/lib/mock-data-context';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Farmer } from '@/types/farmer';
+import { Crop, Farmer } from '@/types';
 
+// Updated schema to include crop and quantity
 const formSchema = z.object({
   farmerId: z.string().min(1, 'Please select a farmer'),
+  cropId: z.string().min(1, 'Please select a crop'),
   date: z.string(),
-  items: z.array(z.string()).min(1, 'Add at least one item'),
+  items: z.string().min(1, 'Add at least one item'),
+  quantity: z.number().min(1, 'Quantity must be at least 1'),
   totalAmount: z.number().min(0),
   amountPaid: z.number().min(0),
   remainingAmount: z.number(),
-  paymentMode: z.enum(['cash', 'upi']),
   notes: z.string().optional(),
 });
 
 export default function AddPurchasePage() {
   const router = useRouter();
-  const { farmers, addPurchase } = useMockData();
-  const [items, setItems] = useState(['']);
+  const { farmers, getCropById, getFarmerById, addPurchase } = useMockData();
+  const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
+  const [farmerCrops, setFarmerCrops] = useState<Crop[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
-      items: [''],
+      items: '',
+      quantity: 1,
       totalAmount: 0,
       amountPaid: 0,
       remainingAmount: 0,
-      paymentMode: 'cash',
       notes: '',
     },
   });
 
-  const addItem = () => {
-    setItems([...items, '']);
-  };
+  // Update available crops when farmer changes
+  useEffect(() => {
+    const farmerId = form.getValues('farmerId');
+    if (farmerId) {
+      const farmer = getFarmerById(farmerId);
+      if (farmer) {
+        setSelectedFarmer(farmer);
+        setFarmerCrops(farmer.crops);
 
-  const removeItem = (index: number) => {
-    const newItems = items.filter((_, i) => i !== index);
-    setItems(newItems);
-    form.setValue(
-      'items',
-      newItems.filter((item) => item !== '')
-    );
-  };
-
-  const updateItem = (index: number, value: string) => {
-    const newItems = [...items];
-    newItems[index] = value;
-    setItems(newItems);
-    form.setValue(
-      'items',
-      newItems.filter((item) => item !== '')
-    );
-  };
+        // Reset the crop selection when farmer changes
+        form.setValue('cropId', '');
+      }
+    }
+  }, [form.watch('farmerId'), getFarmerById]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      const selectedCrop = getCropById(values.cropId);
+
+      if (!selectedCrop) {
+        toast.error('Selected crop not found');
+        return;
+      }
+
+      // Create purchase with the new structure
       addPurchase({
-        ...values,
-        items: values.items.filter((item) => item !== ''),
+        farmerId: values.farmerId,
+        crop: selectedCrop,
+        date: values.date,
+        items: values.items.split('\n').filter((item) => item.trim() !== ''),
+        quantity: values.quantity,
+        totalAmount: values.totalAmount,
+        amountPaid: values.amountPaid,
+        remainingAmount: values.remainingAmount,
+        notes: values.notes,
       });
+
       toast.success('Purchase added successfully');
       router.push('/purchases');
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error('Failed to add purchase');
     }
   };
@@ -129,9 +141,43 @@ export default function AddPurchasePage() {
                           className="bg-white"
                           align="start"
                         >
-                          {farmers.map((farmer: Farmer) => (
+                          {farmers.map((farmer) => (
                             <SelectItem key={farmer.id} value={farmer.id}>
                               {farmer.name} - {farmer.village}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Crop selection field - only enabled when farmer is selected */}
+                <FormField
+                  control={form.control}
+                  name="cropId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Crop</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={!selectedFarmer}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a crop" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent
+                          position="popper"
+                          className="bg-white"
+                          align="start"
+                        >
+                          {farmerCrops.map((crop) => (
+                            <SelectItem key={crop.id} value={crop.id}>
+                              {crop.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -161,38 +207,43 @@ export default function AddPurchasePage() {
           <Card>
             <CardContent className="pt-6">
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold">Items</h2>
-                  <Button
-                    type="button"
-                    onClick={addItem}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Item
-                  </Button>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="items"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Items</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter items (one per line)"
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                {items.map((item, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder="Enter item name"
-                      value={item}
-                      onChange={(e) => updateItem(index, e.target.value)}
-                    />
-                    {items.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(index)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </CardContent>
           </Card>
@@ -255,35 +306,6 @@ export default function AddPurchasePage() {
                       <FormControl>
                         <Input type="number" {...field} disabled />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="paymentMode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Mode</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent
-                          position="popper"
-                          className="bg-white"
-                          align="start"
-                        >
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="upi">UPI</SelectItem>
-                        </SelectContent>
-                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

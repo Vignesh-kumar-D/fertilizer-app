@@ -1,10 +1,14 @@
-// src/types/farmer.ts
+export interface Crop {
+  id: string;
+  name: string;
+}
+
 export interface Farmer {
   id: string;
   name: string;
   phone: string;
   village: string;
-  crops: string[];
+  crops: Crop[]; // Now an array of Crop objects
   totalDue: number;
   totalPaid: number;
   lastVisitDate: string;
@@ -12,41 +16,31 @@ export interface Farmer {
   createdAt: string;
 }
 
-export interface FarmerFormData {
-  name: string;
-  phone: string;
-  village: string;
-  crops: string[];
-}
-
 export interface Visit {
   id: string;
   farmerId: string;
-  employeeId: string;
+  crop: Crop; // Single crop object
+  images: string[];
   date: string;
   notes: string;
-  cropHealth: string;
+  cropHealth: 'good' | 'average' | 'poor';
   recommendations: string;
   nextVisitDate: string;
-  images?: string[];
+  employeeId: string;
+  createdAt: string;
 }
 
 export interface Purchase {
   id: string;
   farmerId: string;
-  employeeId: string;
+  crop: Crop; // Single crop object
   date: string;
-  items: PurchaseItem[];
+  items: string[];
+  quantity: number; // Added quantity field
   totalAmount: number;
   amountPaid: number;
   remainingAmount: number;
-  paymentStatus: 'pending' | 'partial' | 'completed';
-  paymentMode: 'cash' | 'upi' | 'cheque';
   notes?: string;
-}
-
-export interface PurchaseItem {
-  name: string;
-  quantity: number;
-  price: number;
+  createdBy: string;
+  createdAt: string;
 }
