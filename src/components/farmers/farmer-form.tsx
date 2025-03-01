@@ -347,26 +347,22 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
                         <CommandGroup>
                           {filteredCrops.map((crop) => {
                             return (
-                              <>
-                                <CommandItem
-                                  key={crop.id}
-                                  value={crop.name}
-                                  onSelect={() => handleSelectCrop(crop)}
-                                  className="cursor-pointer"
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      selectedCrops.some(
-                                        (c) => c.id === crop.id
-                                      )
-                                        ? 'opacity-100'
-                                        : 'opacity-0'
-                                    )}
-                                  />
-                                  {crop.name}
-                                </CommandItem>
-                              </>
+                              <CommandItem
+                                key={crop.id}
+                                value={crop.name}
+                                onSelect={() => handleSelectCrop(crop)}
+                                className="cursor-pointer"
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    selectedCrops.some((c) => c.id === crop.id)
+                                      ? 'opacity-100'
+                                      : 'opacity-0'
+                                  )}
+                                />
+                                {crop.name}
+                              </CommandItem>
                             );
                           })}
                         </CommandGroup>

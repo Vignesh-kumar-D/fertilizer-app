@@ -236,7 +236,7 @@ export default function NewPurchaseForm() {
                       <FormLabel>Items</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Enter items (one per line)"
+                          placeholder="Enter items"
                           className="min-h-[100px]"
                           {...field}
                         />

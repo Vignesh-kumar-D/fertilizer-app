@@ -10,7 +10,7 @@ import { useMockData } from '@/lib/mock-data-context';
 import FormattedDate from '@/lib/FormattedDate';
 import { Badge } from '@/components/ui/badge';
 import { Crop } from '@/types';
-
+import Image from 'next/image';
 export function FarmerList() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,7 +49,7 @@ export function FarmerList() {
                     <span>{farmer.location}</span>
                   </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 items-center">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -57,6 +57,17 @@ export function FarmerList() {
                   >
                     <Edit2 className="h-4 w-4" />
                   </Button>
+                  {farmer.image && (
+                    <div className="relative rounded-full">
+                      <Image
+                        src={farmer.image}
+                        alt={farmer.name}
+                        className="object-cover rounded-full h-20 w-20 border-2 border-gray-200"
+                        width={40}
+                        height={40}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
