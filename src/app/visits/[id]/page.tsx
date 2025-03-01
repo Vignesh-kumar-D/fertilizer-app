@@ -128,29 +128,29 @@ export default function VisitDetailPage() {
                 <span>{new Date(visit.date).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between items-center">
-             
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Crop</span>
-                <span className="flex items-center gap-1">
-                  <Leaf className="h-4 w-4 text-green-600" />
-                  {visit.crop.name}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Crop Health</span>
-                <span className="flex items-center gap-2">
-                  <Circle
-                    className={`h-3 w-3 ${
-                      visit.cropHealth === 'good'
-                        ? 'text-green-500'
-                        : visit.cropHealth === 'average'
-                        ? 'text-yellow-500'
-                        : 'text-red-500'
-                    }`}
-                  />
-                  {visit.cropHealth.charAt(0).toUpperCase() +
-                    visit.cropHealth.slice(1)}
-                </span>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Crop</span>
+                  <span className="flex items-center gap-1">
+                    <Leaf className="h-4 w-4 text-green-600" />
+                    {visit.crop.name}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Crop Health</span>
+                  <span className="flex items-center gap-2">
+                    <Circle
+                      className={`h-3 w-3 ${
+                        visit.cropHealth === 'good'
+                          ? 'text-green-500'
+                          : visit.cropHealth === 'average'
+                          ? 'text-yellow-500'
+                          : 'text-red-500'
+                      }`}
+                    />
+                    {visit.cropHealth.charAt(0).toUpperCase() +
+                      visit.cropHealth.slice(1)}
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
