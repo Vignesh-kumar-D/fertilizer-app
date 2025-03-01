@@ -208,6 +208,25 @@ export default function NewPurchaseForm() {
 
           <Card>
             <CardContent className="pt-6">
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity (in litres)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(parseFloat(e.target.value));
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -220,26 +239,6 @@ export default function NewPurchaseForm() {
                           placeholder="Enter items (one per line)"
                           className="min-h-[100px]"
                           {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity (in litres)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(parseFloat(e.target.value));
-                          }}
                         />
                       </FormControl>
                       <FormMessage />

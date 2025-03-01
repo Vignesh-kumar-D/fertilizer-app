@@ -108,14 +108,6 @@ export default function VisitsPage() {
                     </h4>
                     <p className="text-sm line-clamp-1">{visit.notes}</p>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground">
-                      Next Visit
-                    </h4>
-                    <p className="text-sm">
-                      <FormattedDate date={visit.nextVisitDate} />
-                    </p>
-                  </div>
                 </div>
               </CardContent>
             </Card>

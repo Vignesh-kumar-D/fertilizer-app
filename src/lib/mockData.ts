@@ -54,7 +54,6 @@ export const initialVisits: Visit[] = [
     images: [],
     cropHealth: 'good',
     recommendations: 'Continue current fertilizer schedule',
-    nextVisitDate: '2024-03-20',
     employeeId: 'emp1',
     createdAt: '2024-02-20',
   },

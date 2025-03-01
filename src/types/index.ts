@@ -26,7 +26,6 @@ export interface Visit {
   notes: string;
   cropHealth: 'good' | 'average' | 'poor';
   recommendations: string;
-  nextVisitDate: string;
   employeeId: string;
   createdAt: string;
 }

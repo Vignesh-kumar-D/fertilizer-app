@@ -128,11 +128,7 @@ export default function VisitDetailPage() {
                 <span>{new Date(visit.date).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Next Visit</span>
-                <span>
-                  {new Date(visit.nextVisitDate).toLocaleDateString()}
-                </span>
-              </div>
+             
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Crop</span>
                 <span className="flex items-center gap-1">

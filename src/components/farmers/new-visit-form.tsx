@@ -37,7 +37,6 @@ const formSchema = z.object({
   farmerId: z.string().min(1, 'Please select a farmer'),
   cropId: z.string().min(1, 'Please select a crop'),
   date: z.string(),
-  nextVisitDate: z.string(),
   cropHealth: z.enum(['good', 'average', 'poor']),
   notes: z.string().min(1, 'Notes are required'),
   recommendations: z.string().min(1, 'Recommendations are required'),
@@ -61,9 +60,6 @@ export default function NewVisitForm() {
       farmerId: initialFarmerId || '',
       cropId: '',
       date: new Date().toISOString().split('T')[0],
-      nextVisitDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0],
       cropHealth: 'good',
       notes: '',
       recommendations: '',
@@ -144,7 +140,6 @@ export default function NewVisitForm() {
         farmerId: values.farmerId,
         crop: selectedCrop,
         date: values.date,
-        nextVisitDate: values.nextVisitDate,
         cropHealth: values.cropHealth,
         notes: values.notes,
         recommendations: values.recommendations,
@@ -245,20 +240,6 @@ export default function NewVisitForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Visit Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="nextVisitDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Next Visit Date</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
