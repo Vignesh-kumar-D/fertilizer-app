@@ -1,9 +1,9 @@
 // lib/firebase/config.js
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getAnalytics, Analytics } from 'firebase/analytics';
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,13 +13,21 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
+let app: FirebaseApp;
+let db: Firestore;
+let auth: Auth;
+let storage: FirebaseStorage;
+let analytics: Analytics;
+if (typeof window !== 'undefined') {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+  db = getFirestore(app);
+  auth = getAuth(app);
+  storage = getStorage(app);
+  analytics = getAnalytics(app);
+}
 
 // Initialize Firebase only once
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getFirestore(app);
-const auth = getAuth(app);
-const storage = getStorage(app);
-const analytics = getAnalytics(app);
+
 // Connect to local emulators in development
 if (process.env.NODE_ENV === 'development') {
   // Uncomment these when you set up local emulators
@@ -27,5 +35,13 @@ if (process.env.NODE_ENV === 'development') {
   // connectAuthEmulator(auth, 'http://localhost:9099');
   // connectStorageEmulator(storage, 'localhost', 9199);
 }
+if (typeof window === 'undefined') {
+  app = {} as FirebaseApp;
 
+  db = {} as Firestore;
+
+  auth = {} as Auth;
+
+  storage = {} as FirebaseStorage;
+}
 export { app, db, auth, storage, analytics };
