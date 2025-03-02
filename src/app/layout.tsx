@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { MockDataProvider } from '@/lib/mock-data-context';
+import { FirebaseProvider } from '@/lib/firebase/firebase-context';
 
 const APP_NAME = 'Vetri Agro services';
 const APP_DEFAULT_TITLE = 'Vetri Agro services';
@@ -104,9 +105,11 @@ export default function RootLayout({
           inter.className
         )}
       >
-        <Header />
         <MockDataProvider>
-          <main>{children}</main>
+          <FirebaseProvider>
+            <Header />
+            <main>{children}</main>
+          </FirebaseProvider>
         </MockDataProvider>
         <Toaster />
       </body>

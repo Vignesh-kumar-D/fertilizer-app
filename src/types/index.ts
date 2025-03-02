@@ -50,3 +50,11 @@ export interface CropActivity {
   date: string;
   details: Visit | Purchase;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  role: 'admin' | 'employee';
+  phone: string;
+  createdAt: string;
+}

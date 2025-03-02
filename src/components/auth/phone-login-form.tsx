@@ -24,7 +24,7 @@ const formSchema = z.object({
 });
 
 interface PhoneLoginFormProps {
-  onSubmit: (phone: string) => void;
+  onSubmit: (phone: string) => Promise<void>;
 }
 
 export default function PhoneLoginForm({ onSubmit }: PhoneLoginFormProps) {

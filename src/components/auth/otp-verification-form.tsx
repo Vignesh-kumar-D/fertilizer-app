@@ -13,8 +13,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
-
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 const formSchema = z.object({
   otp: z
     .string()
@@ -23,18 +23,18 @@ const formSchema = z.object({
 });
 
 interface OtpVerificationFormProps {
+  isLoading: boolean;
   phoneNumber: string;
-  onVerify: (otp: string) => void;
+  onVerify: (otp: string) => Promise<void>;
   onChangePhone: () => void;
 }
 
 export default function OtpVerificationForm({
+  isLoading,
   phoneNumber,
   onVerify,
   onChangePhone,
 }: OtpVerificationFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -43,11 +43,10 @@ export default function OtpVerificationForm({
   });
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsLoading(true);
     try {
       await onVerify(values.otp);
-    } finally {
-      setIsLoading(false);
+    } catch {
+      toast.error('error  in verifying form');
     }
   };
 
@@ -82,7 +81,14 @@ export default function OtpVerificationForm({
           />
           <div className="space-y-3">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Verifying...' : 'Verify OTP'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                'Verify OTP'
+              )}
             </Button>
             <Button
               type="button"

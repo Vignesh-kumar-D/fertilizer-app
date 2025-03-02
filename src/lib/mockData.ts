@@ -76,3 +76,10 @@ export const initialPurchases: Purchase[] = [
     createdAt: '2024-02-24',
   },
 ];
+
+export const user = {
+  name: 'John Doe',
+  phone: '9876543210',
+  email: 'john@example.com',
+  role: 'Store Manager',
+};

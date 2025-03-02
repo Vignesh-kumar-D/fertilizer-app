@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from 'clsx';
+
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -59,4 +60,89 @@ export const compressImage = async (file: File): Promise<string> => {
 
     reader.onerror = (error) => reject(error);
   });
+};
+
+// lib/firebase/utils.ts
+import { DocumentData, Timestamp } from 'firebase/firestore';
+
+// Format timestamp to string
+export const formatTimestamp = (timestamp: Timestamp): string => {
+  return timestamp.toDate().toISOString();
+};
+
+// Convert Firebase document to our model
+export const convertDoc = <T extends { id: string }>(doc: DocumentData): T => {
+  const data = doc.data();
+
+  // Convert timestamps to strings
+  const formattedData = { ...data };
+
+  if (data.createdAt && data.createdAt instanceof Timestamp) {
+    formattedData.createdAt = formatTimestamp(data.createdAt);
+  }
+
+  if (data.date && data.date instanceof Timestamp) {
+    formattedData.date = formatTimestamp(data.date);
+  }
+
+  if (data.lastVisitDate && data.lastVisitDate instanceof Timestamp) {
+    formattedData.lastVisitDate = formatTimestamp(data.lastVisitDate);
+  }
+
+  return {
+    id: doc.id,
+    ...formattedData,
+  } as T;
+};
+
+// Format phone number to ensure consistency
+export const formatPhoneNumber = (phoneNumber: string): string => {
+  // Basic formatting - ensure it has a + prefix
+  if (!phoneNumber.startsWith('+')) {
+    return `+${phoneNumber}`;
+  }
+  return phoneNumber;
+};
+
+// Generate a unique ID
+export const generateUniqueId = (): string => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
+// Handle offline operations
+export const storeOfflineOperation = (
+  operation: 'create' | 'update' | 'delete',
+  collection: string,
+  data: unknown,
+  id?: string
+): void => {
+  if (typeof window === 'undefined') return;
+
+  const offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+
+  offlineQueue.push({
+    operation,
+    collection,
+    data,
+    id,
+    timestamp: new Date().toISOString(),
+  });
+
+  localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+};
+
+// Check if there are pending offline operations
+export const hasPendingOfflineOperations = (): boolean => {
+  if (typeof window === 'undefined') return false;
+
+  const offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+  return offlineQueue.length > 0;
+};
+
+// Get count of pending offline operations
+export const getPendingOfflineOperationsCount = (): number => {
+  if (typeof window === 'undefined') return 0;
+
+  const offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+  return offlineQueue.length;
 };

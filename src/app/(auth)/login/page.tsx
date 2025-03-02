@@ -4,21 +4,46 @@
 import OtpVerificationForm from '@/components/auth/otp-verification-form';
 import PhoneLoginForm from '@/components/auth/phone-login-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFirebase } from '@/lib/firebase/firebase-context';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-
+import { toast } from 'sonner';
 export default function LoginPage() {
-  const [isVerifying, setIsVerifying] = useState(false);
+  const { signInWithPhone, verifyOtp } = useFirebase();
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [verificationId, setVerificationId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const handlePhoneSubmit = async (phone: string) => {
-    setPhoneNumber(phone);
-    setIsVerifying(true);
+
+  const handleSubmitPhone = async (phoneNumberSubmitted: string) => {
+    setIsLoading(true);
+    try {
+      const id = await signInWithPhone(`+91${phoneNumberSubmitted}`);
+      setVerificationId(id);
+      setPhoneNumber(phoneNumberSubmitted);
+    } catch {
+      toast.error('Failed to send verification code');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleOtpVerify = async (otp: string) => {
-    router.push('/farmers');
-    console.log('Verifying OTP:', otp);
+  const handleVerifyOtp = async (otp: string) => {
+    if (!verificationId) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await verifyOtp(verificationId, otp);
+      router.push('/dashboard');
+    } catch (error) {
+      const err = error as Error;
+      toast.error(err.message || 'Failed to verify code');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -26,22 +51,23 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">
-            {isVerifying ? 'Verify OTP' : 'Welcome Back'}
+            {verificationId ? 'Verify OTP' : 'Welcome Back'}
           </CardTitle>
           <p className="text-center text-sm text-muted-foreground">
-            {isVerifying
+            {verificationId
               ? 'Enter the verification code to continue'
               : 'Enter your phone number to login'}
           </p>
         </CardHeader>
         <CardContent>
-          {!isVerifying ? (
-            <PhoneLoginForm onSubmit={handlePhoneSubmit} />
+          {!verificationId ? (
+            <PhoneLoginForm onSubmit={handleSubmitPhone} />
           ) : (
             <OtpVerificationForm
+              isLoading={isLoading}
               phoneNumber={phoneNumber}
-              onVerify={handleOtpVerify}
-              onChangePhone={() => setIsVerifying(false)}
+              onVerify={handleVerifyOtp}
+              onChangePhone={() => setVerificationId(null)}
             />
           )}
         </CardContent>
