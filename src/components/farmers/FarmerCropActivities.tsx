@@ -49,7 +49,7 @@ export default function FarmerCropActivities({
   const allActivities = useMemo(() => {
     if (!farmer || !crop) return [] as CropActivity[];
     return getFarmerCropActivities(farmerId, cropId);
-  }, [farmerId, cropId, getFarmerCropActivities]);
+  }, [farmerId, cropId, getFarmerCropActivities, crop, farmer]);
 
   // Filter activities based on selected tab
   const filteredActivities = useMemo(() => {
@@ -315,21 +315,9 @@ export default function FarmerCropActivities({
               {activity.type === 'purchase' && (
                 <div className="mt-3">
                   <div className="flex flex-wrap gap-1">
-                    {(activity.details as Purchase).items
-                      .slice(0, 2)
-                      .map((item: string, index: number) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs"
-                        >
-                          {item}
-                        </span>
-                      ))}
-                    {(activity.details as Purchase).items.length > 2 && (
-                      <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
-                        +{(activity.details as Purchase).items.length - 2} more
-                      </span>
-                    )}
+                    <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
+                      {(activity.details as Purchase).items}
+                    </span>
                   </div>
                 </div>
               )}

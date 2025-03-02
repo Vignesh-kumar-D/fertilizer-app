@@ -149,12 +149,10 @@ export default function PurchaseDetailsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              {purchase.items.map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-primary" />
-                  <span>{item}</span>
-                </div>
-              ))}
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-primary" />
+                <span>{purchase.items}</span>
+              </div>
             </div>
           </CardContent>
         </Card>

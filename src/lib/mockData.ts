@@ -66,7 +66,7 @@ export const initialPurchases: Purchase[] = [
     farmerId: '1',
     crop: { id: 'crop1', name: 'Wheat' },
     date: '2024-02-24',
-    items: ['NPK Fertilizer', 'Pesticide'],
+    items: 'NPK Fertilizer, Pesticide',
     quantity: 2,
     totalAmount: 2400,
     amountPaid: 2000,

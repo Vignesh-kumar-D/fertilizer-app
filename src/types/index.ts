@@ -35,7 +35,7 @@ export interface Purchase {
   farmerId: string;
   crop: Crop; // Single crop object
   date: string;
-  items: string[];
+  items: string;
   quantity: number; // Added quantity field
   totalAmount: number;
   amountPaid: number;

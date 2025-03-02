@@ -23,7 +23,7 @@ export default function PurchasesPage() {
       farmer?.name.toLowerCase().includes(searchLower) ||
       farmer?.location.toLowerCase().includes(searchLower) ||
       purchase.crop.name.toLowerCase().includes(searchLower) ||
-      purchase.items.some((item) => item.toLowerCase().includes(searchLower))
+      purchase.items.toLowerCase().includes(searchLower)
     );
   });
 
@@ -99,14 +99,10 @@ export default function PurchasesPage() {
 
                 <div className="mt-2">
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {purchase.items.slice(0, 2).map((item, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs"
-                      >
-                        {item}
-                      </span>
-                    ))}
+                    <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
+                      {purchase.items}
+                    </span>
+
                     {purchase.items.length > 2 && (
                       <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
                         +{purchase.items.length - 2} more

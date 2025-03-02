@@ -93,7 +93,7 @@ export default function NewPurchaseForm() {
         farmerId: values.farmerId,
         crop: selectedCrop,
         date: values.date,
-        items: values.items.split('\n').filter((item) => item.trim() !== ''),
+        items: values.items,
         quantity: values.quantity,
         totalAmount: values.totalAmount,
         amountPaid: values.amountPaid,
