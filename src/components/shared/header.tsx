@@ -15,14 +15,10 @@ import {
   Menu,
   User,
 } from 'lucide-react';
-
-const navigation = [
-  {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    pattern: /^\/dashboard/,
-  },
+import { useFirebase } from '@/lib/firebase/firebase-context';
+import { ButtonLoader } from './loader';
+// Base navigation items that all authenticated users can see
+const baseNavigation = [
   {
     name: 'Farmers',
     href: '/farmers',
@@ -43,9 +39,38 @@ const navigation = [
   },
 ];
 
+// Admin-only navigation item
+const adminNavItem = {
+  name: 'Dashboard',
+  href: '/dashboard',
+  icon: LayoutDashboard,
+  pattern: /^\/dashboard/,
+};
+
 export function Header() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { currentUser, isAdmin, loading } = useFirebase();
+
+  // Generate navigation based on user role
+  const navigation = isAdmin
+    ? [adminNavItem, ...baseNavigation]
+    : [...baseNavigation];
+
+  // Handle sign out
+
+  // If still loading auth state or not authenticated, don't render header
+  if (loading) {
+    return (
+      <div className="flex w-full justify-center">
+        <ButtonLoader size={24} />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white">
@@ -110,8 +135,13 @@ export function Header() {
 
         <div className="flex items-center space-x-4">
           {/* User Profile Button */}
-          <Link key={'profile'} href={'/profile'} className="hidden md:flex">
+          <Link
+            key={'profile'}
+            href={'/profile'}
+            className="hidden md:flex items-center space-x-2"
+          >
             <User className="h-5 w-5" />
+            <span className="text-sm">{currentUser.name}</span>
           </Link>
 
           {/* Mobile Menu */}
@@ -142,11 +172,17 @@ export function Header() {
                     </Link>
                   );
                 })}
+
                 {/* Mobile Profile Link */}
                 <Link
                   href="/profile"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center space-x-3 px-3 py-2 rounded-md transition-colors hover:bg-primary/5 text-muted-foreground"
+                  className={cn(
+                    'flex items-center space-x-3 px-3 py-2 rounded-md transition-colors',
+                    pathname === '/profile'
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-primary/5 text-muted-foreground'
+                  )}
                 >
                   <User className="h-5 w-5" />
                   <span className="font-medium">Profile</span>
