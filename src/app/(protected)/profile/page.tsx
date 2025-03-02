@@ -16,7 +16,7 @@ import { useFirebase } from '@/lib/firebase/firebase-context';
 export default function ProfilePage() {
   const router = useRouter();
 
-  const { currentUser, signOut } = useFirebase();
+  const { currentUser, signOut, isAdmin } = useFirebase();
   // Mock user data
 
   const handleLogout = async () => {
@@ -47,7 +47,9 @@ export default function ProfilePage() {
             </div>
             <div>
               <h2 className="font-semibold text-lg">{currentUser?.name}</h2>
-              <p className="text-muted-foreground">{currentUser?.role}</p>
+              <p className="text-muted-foreground">
+                {isAdmin ? currentUser?.role : 'Associate'}
+              </p>
             </div>
           </div>
 
@@ -64,7 +66,7 @@ export default function ProfilePage() {
               <Label>Role</Label>
               <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/10">
                 <Building className="w-4 h-4 text-muted-foreground" />
-                <span>{currentUser?.role}</span>
+                <span>{isAdmin ? currentUser?.role : 'Associate'}</span>
               </div>
             </div>
           </div>
