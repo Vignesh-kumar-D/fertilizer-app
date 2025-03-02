@@ -1,5 +1,8 @@
 // app/offline/page.tsx
 'use client';
+
+import { Button } from '@/components/ui/button';
+
 export default function OfflinePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
@@ -9,12 +12,12 @@ export default function OfflinePage() {
           It looks like you&apos;re not connected to the internet. Some features
           may be limited until your connection is restored.
         </p>
-        <button
+        <Button
           onClick={() => window.location.reload()}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
         >
           Try Again
-        </button>
+        </Button>
       </div>
     </div>
   );
