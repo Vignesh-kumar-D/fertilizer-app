@@ -102,7 +102,7 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
 
   // Purchase functions
   const addPurchase = (
-    purchaseData: Omit<Purchase, 'id' | 'createdAt' | 'createdBy'>
+    purchaseData: Omit<Purchase, 'id' | 'createdAt' | 'employeeId'>
   ) => {
     const newPurchase: Purchase = {
       ...purchaseData,
