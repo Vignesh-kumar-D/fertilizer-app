@@ -24,14 +24,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMockData } from '@/lib/mock-data-context';
 import { toast } from 'sonner';
-import { ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { Crop, Farmer } from '@/types';
 import { compressImage } from '@/lib/utils';
+import { useFirebase } from '@/lib/firebase/firebase-context';
 import Image from 'next/image';
-
-// Image compression utility
 
 const formSchema = z.object({
   farmerId: z.string().min(1, 'Please select a farmer'),
@@ -46,10 +44,22 @@ const formSchema = z.object({
 export default function NewVisitForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { farmers, getFarmerById, getCropById, addVisit } = useMockData();
+  const {
+    getFarmers,
+    getFarmerById,
+    createVisit,
+    updateVisit,
+    uploadVisitImages,
+    currentUser,
+  } = useFirebase();
+
+  const [farmers, setFarmers] = useState<Farmer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVisit, setUploadingVisit] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
   const [farmerCrops, setFarmerCrops] = useState<Crop[]>([]);
+  const [imagesToUpload, setImagesToUpload] = useState<File[]>([]);
 
   // Get farmerId from URL if available
   const initialFarmerId = searchParams.get('farmerId');
@@ -67,31 +77,73 @@ export default function NewVisitForm() {
     },
   });
 
+  // Fetch farmers list
+  useEffect(() => {
+    const fetchFarmers = async () => {
+      setLoading(true);
+      try {
+        const response = await getFarmers();
+        setFarmers(response.data);
+      } catch (error) {
+        console.error('Error fetching farmers:', error);
+        toast.error('Failed to load farmers');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFarmers();
+  }, [getFarmers]);
+
   // Initialize farmer when coming from farmer profile
   useEffect(() => {
-    if (initialFarmerId) {
-      const farmer = getFarmerById(initialFarmerId);
-      if (farmer) {
-        setSelectedFarmer(farmer);
-        setFarmerCrops(farmer.crops);
+    const loadSelectedFarmer = async () => {
+      if (initialFarmerId) {
+        try {
+          const farmer = await getFarmerById(initialFarmerId);
+          if (farmer) {
+            setSelectedFarmer(farmer);
+            setFarmerCrops(farmer.crops || []);
+          } else {
+            toast.error('Farmer not found');
+            router.push('/visits');
+          }
+        } catch (error) {
+          console.error('Error loading farmer:', error);
+          toast.error('Failed to load farmer details');
+        }
       }
-    }
-  }, [initialFarmerId, getFarmerById]);
-  const farmerIDDep = form.watch('farmerId');
+    };
+
+    loadSelectedFarmer();
+  }, [initialFarmerId, getFarmerById, router]);
+
+  // Watch for farmer ID changes
+  const farmerIdValue = form.watch('farmerId');
+
   // Update available crops when farmer changes
   useEffect(() => {
-    const farmerId = form.getValues('farmerId');
-    if (farmerId) {
-      const farmer = getFarmerById(farmerId);
-      if (farmer) {
-        setSelectedFarmer(farmer);
-        setFarmerCrops(farmer.crops);
+    const loadFarmerCrops = async () => {
+      const farmerId = form.getValues('farmerId');
+      if (farmerId && farmerId !== initialFarmerId) {
+        try {
+          const farmer = await getFarmerById(farmerId);
+          if (farmer) {
+            setSelectedFarmer(farmer);
+            setFarmerCrops(farmer.crops || []);
 
-        // Reset the crop selection when farmer changes
-        form.setValue('cropId', '');
+            // Reset the crop selection when farmer changes
+            form.setValue('cropId', '', { shouldValidate: true });
+          }
+        } catch (error) {
+          console.error('Error loading farmer crops:', error);
+          toast.error('Failed to load farmer crops');
+        }
       }
-    }
-  }, [farmerIDDep, getFarmerById, form]);
+    };
+
+    loadFarmerCrops();
+  }, [farmerIdValue, getFarmerById, form, initialFarmerId]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -105,14 +157,24 @@ export default function NewVisitForm() {
 
     setUploading(true);
     try {
+      // Store files for later upload to Firebase
+      const newFiles = Array.from(files);
+      setImagesToUpload((prev) => [...prev, ...newFiles]);
+
+      // Process for preview
       const compressedImages = await Promise.all(
-        Array.from(files).map((file) => compressImage(file))
+        newFiles.map((file) => compressImage(file))
       );
 
-      form.setValue('images', [...currentImages, ...compressedImages]);
-      toast.success('Images uploaded successfully');
-    } catch {
-      toast.error('Failed to upload images. Make sure each image is under 2MB');
+      form.setValue('images', [...currentImages, ...compressedImages], {
+        shouldValidate: true,
+      });
+      toast.success('Images added for upload');
+    } catch (error) {
+      console.error('Error compressing images:', error);
+      toast.error(
+        'Failed to process images. Make sure each image is under 2MB'
+      );
     } finally {
       setUploading(false);
     }
@@ -120,39 +182,81 @@ export default function NewVisitForm() {
 
   const removeImage = (index: number) => {
     const currentImages = form.getValues('images');
+
+    // Remove from preview images
     form.setValue(
       'images',
-      currentImages.filter((_, i) => i !== index)
+      currentImages.filter((_, i) => i !== index),
+      { shouldValidate: true }
     );
+
+    // Remove from files to upload
+    if (index < imagesToUpload.length) {
+      setImagesToUpload((prev) => prev.filter((_, i) => i !== index));
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setUploadingVisit(true);
     try {
-      const selectedCrop = getCropById(values.cropId);
+      // Find selected crop from farmer's crops
+      const selectedCrop = farmerCrops.find(
+        (crop) => crop.id === values.cropId
+      );
 
       if (!selectedCrop) {
         toast.error('Selected crop not found');
+        setUploadingVisit(false);
         return;
       }
 
-      // Create visit with the new structure
-      addVisit({
+      // Create visit first
+      const visitId = await createVisit({
         farmerId: values.farmerId,
         crop: selectedCrop,
         date: values.date,
-        cropHealth: values.cropHealth,
+        cropHealth: values.cropHealth as 'good' | 'average' | 'poor',
+        employeeId: currentUser?.id ?? '',
         notes: values.notes,
         recommendations: values.recommendations,
-        images: values.images,
+        images: [], // Initially empty
       });
 
-      toast.success('Visit added successfully');
+      // If we have images to upload
+      if (imagesToUpload.length > 0) {
+        try {
+          const imageUrls = await uploadVisitImages(imagesToUpload, visitId);
+
+          // Update the visit with image URLs
+          await updateVisit(visitId, { images: imageUrls });
+
+          toast.success('Visit and images added successfully');
+        } catch (imgError) {
+          console.error('Error uploading images:', imgError);
+          toast.error('Visit created but images could not be uploaded');
+        }
+      } else {
+        toast.success('Visit added successfully');
+      }
+
       router.push('/visits');
     } catch (error) {
-      console.error(error);
+      console.error('Error adding visit:', error);
       toast.error('Failed to add visit');
+    } finally {
+      setUploadingVisit(false);
     }
   };
+
+  // If loading, show spinner
+  if (loading && !initialFarmerId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading farmers data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
@@ -183,6 +287,7 @@ export default function NewVisitForm() {
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    disabled={!!initialFarmerId || uploadingVisit}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -212,7 +317,11 @@ export default function NewVisitForm() {
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
-                    disabled={!selectedFarmer}
+                    disabled={
+                      !selectedFarmer ||
+                      farmerCrops.length === 0 ||
+                      uploadingVisit
+                    }
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -220,11 +329,17 @@ export default function NewVisitForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-white">
-                      {farmerCrops.map((crop) => (
-                        <SelectItem key={crop.id} value={crop.id}>
-                          {crop.name}
+                      {farmerCrops.length > 0 ? (
+                        farmerCrops.map((crop) => (
+                          <SelectItem key={crop.id} value={crop.id}>
+                            {crop.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>
+                          No crops available
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -241,7 +356,7 @@ export default function NewVisitForm() {
                 <FormItem>
                   <FormLabel>Visit Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} disabled={uploadingVisit} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -258,6 +373,7 @@ export default function NewVisitForm() {
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  disabled={uploadingVisit}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -301,6 +417,7 @@ export default function NewVisitForm() {
                     placeholder="Enter visit notes and observations..."
                     className="min-h-[100px]"
                     {...field}
+                    disabled={uploadingVisit}
                   />
                 </FormControl>
                 <FormMessage />
@@ -319,6 +436,7 @@ export default function NewVisitForm() {
                     placeholder="Enter recommendations for the farmer..."
                     className="min-h-[100px]"
                     {...field}
+                    disabled={uploadingVisit}
                   />
                 </FormControl>
                 <FormMessage />
@@ -337,8 +455,10 @@ export default function NewVisitForm() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {field.value.map((image, index) => (
                         <div key={index} className="relative aspect-square">
+                          {/* Using standard img tag to avoid Next.js Image domain issues */}
                           <Image
                             src={image}
+                            fill
                             alt={`Visit photo ${index + 1}`}
                             className="object-cover rounded-lg w-full h-full"
                           />
@@ -348,24 +468,35 @@ export default function NewVisitForm() {
                             size="icon"
                             className="absolute top-2 right-2 h-6 w-6"
                             onClick={() => removeImage(index)}
+                            disabled={uploading || uploadingVisit}
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
                       ))}
                       {field.value.length < 5 && (
-                        <label className="border-2 border-dashed border-gray-300 rounded-lg aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                        <label
+                          className={`border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center transition-colors ${
+                            uploadingVisit
+                              ? 'cursor-not-allowed border-gray-200'
+                              : 'cursor-pointer hover:border-primary border-gray-300'
+                          }`}
+                        >
                           <input
                             type="file"
                             accept="image/*"
                             multiple
                             className="hidden"
                             onChange={handleImageUpload}
-                            disabled={uploading}
+                            disabled={uploading || uploadingVisit}
                           />
-                          <ImageIcon className="h-8 w-8 text-gray-400" />
+                          {uploading ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                          ) : (
+                            <ImageIcon className="h-8 w-8 text-gray-400" />
+                          )}
                           <span className="text-sm text-gray-500 mt-2">
-                            {uploading ? 'Uploading...' : 'Add Photos'}
+                            {uploading ? 'Processing...' : 'Add Photos'}
                           </span>
                         </label>
                       )}
@@ -384,13 +515,22 @@ export default function NewVisitForm() {
             <Button
               type="submit"
               className="bg-primary text-primary-foreground"
+              disabled={uploadingVisit || uploading}
             >
-              Add Visit
+              {uploadingVisit ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Add Visit'
+              )}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => router.push('/visits')}
+              disabled={uploadingVisit}
             >
               Cancel
             </Button>

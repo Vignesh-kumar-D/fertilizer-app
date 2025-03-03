@@ -38,6 +38,7 @@ import {
   createVisit,
   updateVisit,
   deleteVisit,
+  getVisitById,
 } from '@/lib/firebase/utils/visit';
 import {
   getPurchasesByFarmerId,
@@ -67,6 +68,7 @@ import {
   getRecentCropActivities,
 } from '@/lib/firebase/utils/crop-activities';
 import { getPendingOfflineOperationsCount } from '@/lib/utils';
+import { addCrop, getCrops } from './utils/crops';
 
 interface FirebaseContextType {
   // Authentication
@@ -95,6 +97,8 @@ interface FirebaseContextType {
 
   // Visits
   getVisitsByFarmerId: (farmerId: string) => Promise<Visit[]>;
+
+  getVisitById: (id: string) => Promise<Visit | null>;
   getVisitsByFarmerAndCrop: (
     farmerId: string,
     cropId: string
@@ -115,6 +119,9 @@ interface FirebaseContextType {
   updatePurchase: (id: string, data: Partial<Purchase>) => Promise<void>;
   deletePurchase: (id: string) => Promise<void>;
 
+  //crops
+  getCrops: () => Promise<Crop[]>;
+  addCrop: (name: string) => Promise<Crop>;
   // Crop Activities
   getCropActivity: (
     farmerId: string,
@@ -309,6 +316,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
 
     // Visits
     getVisitsByFarmerId,
+    getVisitById,
     getVisitsByFarmerAndCrop,
     createVisit: (visit) => {
       if (!currentUser)
@@ -328,7 +336,9 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
     },
     updatePurchase,
     deletePurchase,
-
+    //crops
+    getCrops,
+    addCrop,
     // Crop Activities
     getCropActivity,
     getAllCropActivities,

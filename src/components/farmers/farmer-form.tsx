@@ -37,7 +37,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMockData } from '@/lib/mock-data-context';
 import { toast } from 'sonner';
 import { Crop } from '@/types';
 import { cn, compressImage } from '@/lib/utils';
@@ -63,20 +62,25 @@ interface FarmerFormProps {
 
 export function FarmerForm({ farmerId }: FarmerFormProps) {
   const router = useRouter();
-  const { crops, addCrop } = useMockData();
-  const { createFarmer, updateFarmer, getFarmerById, uploadFarmerImage } =
-    useFirebase();
+  const {
+    createFarmer,
+    updateFarmer,
+    getFarmerById,
+    uploadFarmerImage,
+    getCrops,
+    addCrop: addCropToDb,
+  } = useFirebase();
 
+  const [crops, setCrops] = useState<Crop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<Crop[]>([]);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [showAddCrop, setShowAddCrop] = useState(false);
+  const [loadingCrops, setLoadingCrops] = useState(true);
+  const [addingCrop, setAddingCrop] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [farmerNotFound, setFarmerNotFound] = useState(false);
-
-  // Get existing farmer data if editing
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -89,6 +93,26 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
       image: '',
     },
   });
+
+  // Fetch all crops from Firebase
+  useEffect(() => {
+    const fetchCrops = async () => {
+      setLoadingCrops(true);
+      try {
+        const cropsList = await getCrops();
+        setCrops(cropsList);
+      } catch (error) {
+        console.error('Error fetching crops:', error);
+        toast.error('Failed to load crops');
+      } finally {
+        setLoadingCrops(false);
+      }
+    };
+
+    fetchCrops();
+  }, [getCrops]);
+
+  // Fetch farmer if editing
   useEffect(() => {
     const fetchFarmer = async () => {
       if (farmerId) {
@@ -123,6 +147,7 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
 
     fetchFarmer();
   }, [farmerId, getFarmerById, form]);
+
   // Update form value when selected crops change
   useEffect(() => {
     form.setValue('crops', selectedCrops, { shouldValidate: true });
@@ -147,13 +172,37 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
     setSelectedCrops((prev) => prev.filter((c) => c.id !== cropId));
   };
 
-  // Handle adding a new crop
-  const handleAddNewCrop = (corpName: string) => {
-    if (corpName.trim()) {
-      const newCrop = addCrop({ name: corpName.trim() });
+  // Handle adding a new crop to Firebase
+  const handleAddNewCrop = async (cropName: string) => {
+    if (!cropName.trim()) return;
+
+    setAddingCrop(true);
+    try {
+      // Check if crop with same name already exists
+      const cropExists = crops.some(
+        (crop) => crop.name.toLowerCase() === cropName.trim().toLowerCase()
+      );
+
+      if (cropExists) {
+        toast.error(`A crop named "${cropName}" already exists`);
+        return;
+      }
+
+      // Add crop to Firebase
+      const newCrop = await addCropToDb(cropName.trim());
+
+      // Update local crops list
+      setCrops((prev) => [...prev, newCrop]);
+
+      // Select the new crop
       handleSelectCrop(newCrop);
-      setShowAddCrop(false);
-      toast.success(`Added new crop: ${corpName}`);
+      toast.success(`Added new crop: ${cropName}`);
+    } catch (error) {
+      console.error('Error adding crop:', error);
+      toast.error('Failed to add crop');
+    } finally {
+      setAddingCrop(false);
+      setSearchTerm('');
     }
   };
 
@@ -278,11 +327,13 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
   };
 
   // Show loading state
-  if (loading) {
+  if (loading || loadingCrops) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading farmer data...</p>
+        <p className="mt-4 text-muted-foreground">
+          {loading ? 'Loading farmer data...' : 'Loading crops...'}
+        </p>
       </div>
     );
   }
@@ -296,7 +347,7 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
             Farmer not found. The requested farmer may have been deleted or does
-            exist.
+            not exist.
           </AlertDescription>
         </Alert>
         <Button onClick={() => router.push('/farmers')}>
@@ -468,17 +519,20 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
 
                       <CommandList className="bg-white max-h-[200px] overflow-auto">
                         <CommandEmpty className="py-2">
-                          {searchTerm && !showAddCrop ? (
+                          {searchTerm ? (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="flex w-full items-center justify-start px-2 py-1 text-sm"
-                              onClick={() => {
-                                handleAddNewCrop(searchTerm);
-                              }}
+                              onClick={() => handleAddNewCrop(searchTerm)}
+                              disabled={addingCrop}
                             >
-                              <Plus className="mr-2 h-4 w-4" />
-                              Add &quot;{searchTerm}&quot;
+                              {addingCrop ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Plus className="mr-2 h-4 w-4" />
+                              )}
+                              {addingCrop ? 'Adding...' : `Add "${searchTerm}"`}
                             </Button>
                           ) : (
                             <p className="text-center py-2 px-2 text-sm text-muted-foreground">
@@ -523,7 +577,7 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
           <Button
             type="submit"
             className="bg-primary text-primary-foreground"
-            disabled={isSubmitting || uploading}
+            disabled={isSubmitting || uploading || addingCrop}
           >
             {isSubmitting && <ButtonLoader />} {farmerId ? 'Update' : 'Add'}{' '}
             Farmer

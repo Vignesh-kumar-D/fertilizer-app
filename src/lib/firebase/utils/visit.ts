@@ -10,6 +10,7 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  getDoc,
 } from 'firebase/firestore';
 import { db } from '../config';
 import { Visit } from '@/types';
@@ -35,7 +36,21 @@ export const getVisitsByFarmerId = async (
 
   return visits;
 };
+export const getVisitById = async (id: string): Promise<Visit | null> => {
+  try {
+    const docRef = doc(db, 'visits', id);
+    const docSnap = await getDoc(docRef);
 
+    if (docSnap.exists()) {
+      return convertDoc<Visit>(docSnap);
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching visit by ID:', error);
+    throw error;
+  }
+};
 // Get visits by farmer ID and crop ID
 export const getVisitsByFarmerAndCrop = async (
   farmerId: string,
