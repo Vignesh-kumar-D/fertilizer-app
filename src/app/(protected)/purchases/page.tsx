@@ -1,31 +1,108 @@
 // src/app/purchases/page.tsx
 'use client';
 
-import { useMockData } from '@/lib/mock-data-context';
+import { useFirebase } from '@/lib/firebase/firebase-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, IndianRupee, Leaf } from 'lucide-react';
+import { Plus, IndianRupee, Leaf, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FormattedDate from '@/lib/FormattedDate';
+import { Purchase, Farmer } from '@/types';
 
 export default function PurchasesPage() {
   const router = useRouter();
-  const { purchases, getFarmerById } = useMockData();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { getFarmers, getPurchasesByFarmerId } = useFirebase();
 
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [farmers, setFarmers] = useState<Record<string, Farmer>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // Fetch all data on page load
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Get all farmers for lookup
+        const farmersResponse = await getFarmers();
+        const farmersMap: Record<string, Farmer> = {};
+
+        farmersResponse.data.forEach((farmer) => {
+          farmersMap[farmer.id] = farmer;
+        });
+
+        setFarmers(farmersMap);
+
+        // Get all purchases from each farmer
+        const allPurchases: Purchase[] = [];
+
+        // For each farmer, get their purchases
+        const purchasesPromises = farmersResponse.data.map(async (farmer) => {
+          try {
+            const farmerPurchases = await getPurchasesByFarmerId(farmer.id);
+            return farmerPurchases;
+          } catch (error) {
+            console.error(
+              `Error fetching purchases for farmer ${farmer.id}:`,
+              error
+            );
+            return [];
+          }
+        });
+
+        const purchasesResults = await Promise.all(purchasesPromises);
+        purchasesResults.forEach((farmerPurchases) => {
+          allPurchases.push(...farmerPurchases);
+        });
+
+        // Sort purchases by date (newest first)
+        allPurchases.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        setPurchases(allPurchases);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [getFarmers, getPurchasesByFarmerId]);
+
+  // Get purchases by farmer ID - this would normally be in your Firebase context
+
+  // Filter purchases based on search term
   const filteredPurchases = purchases.filter((purchase) => {
-    const farmer = getFarmerById(purchase.farmerId);
+    const farmer = farmers[purchase.farmerId];
+    if (!farmer) return false;
+
     const searchLower = searchTerm.toLowerCase();
 
     return (
-      farmer?.name.toLowerCase().includes(searchLower) ||
-      farmer?.location.toLowerCase().includes(searchLower) ||
+      farmer.name.toLowerCase().includes(searchLower) ||
+      farmer.location.toLowerCase().includes(searchLower) ||
       purchase.crop.name.toLowerCase().includes(searchLower) ||
       purchase.items.toLowerCase().includes(searchLower)
     );
   });
+
+  // Get farmer by ID - replicating the mock data function
+  const getFarmerById = (farmerId: string): Farmer | null => {
+    return farmers[farmerId] || null;
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading purchases...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -54,6 +131,7 @@ export default function PurchasesPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredPurchases.map((purchase) => {
           const farmer = getFarmerById(purchase.farmerId);
+          if (!farmer) return null;
 
           return (
             <Card
@@ -64,9 +142,9 @@ export default function PurchasesPage() {
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium">{farmer?.name}</div>
+                    <div className="font-medium">{farmer.name}</div>
                     <div className="text-muted-foreground text-sm">
-                      {farmer?.location}
+                      {farmer.location}
                     </div>
                     <div className="flex items-center gap-1 mt-1 text-sm">
                       <Leaf className="h-3 w-3 text-green-600" />

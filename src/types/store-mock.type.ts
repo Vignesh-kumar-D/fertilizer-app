@@ -33,7 +33,7 @@ export interface MockDataContextType {
 
   // Purchase functions
   addPurchase: (
-    purchase: Omit<Purchase, 'id' | 'createdAt' | 'createdBy'>
+    purchase: Omit<Purchase, 'id' | 'createdAt' | 'employeeId'>
   ) => void;
   getFarmerPurchases: (farmerId: string) => Purchase[];
   getCropPurchases: (cropId: string) => Purchase[];

@@ -24,11 +24,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMockData } from '@/lib/mock-data-context';
 import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Crop, Farmer } from '@/types';
+import { useFirebase } from '@/lib/firebase/firebase-context';
 
 // Updated schema to include crop and quantity
 const formSchema = z.object({
@@ -46,16 +46,23 @@ const formSchema = z.object({
 export default function NewPurchaseForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { farmers, getCropById, getFarmerById, addPurchase } = useMockData();
+  const { getFarmers, getFarmerById, createPurchase } = useFirebase();
+
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
   const [farmerCrops, setFarmerCrops] = useState<Crop[]>([]);
+  const [farmers, setFarmers] = useState<Farmer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   const initialFarmerId = searchParams.get('farmerId');
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
       items: '',
       farmerId: initialFarmerId || '',
+      cropId: '',
       quantity: 1,
       totalAmount: 0,
       amountPaid: 0,
@@ -63,33 +70,102 @@ export default function NewPurchaseForm() {
       notes: '',
     },
   });
-  const farmerIDDep = form.watch('farmerId');
+
+  // Fetch all farmers
+  useEffect(() => {
+    const fetchFarmers = async () => {
+      setLoading(true);
+      try {
+        const response = await getFarmers();
+        setFarmers(response.data);
+      } catch (error) {
+        console.error('Error fetching farmers:', error);
+        toast.error('Failed to load farmers');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFarmers();
+  }, [getFarmers]);
+
+  // Load initial farmer if farmerId is provided
+  useEffect(() => {
+    const loadInitialFarmer = async () => {
+      if (initialFarmerId) {
+        try {
+          const farmer = await getFarmerById(initialFarmerId);
+          if (farmer) {
+            setSelectedFarmer(farmer);
+            setFarmerCrops(farmer.crops || []);
+
+            // If there's only one crop, auto-select it
+            if (farmer.crops && farmer.crops.length === 1) {
+              form.setValue('cropId', farmer.crops[0].id);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading initial farmer:', error);
+          toast.error('Failed to load farmer details');
+        }
+      }
+    };
+
+    if (initialFarmerId) {
+      loadInitialFarmer();
+    }
+  }, [initialFarmerId, getFarmerById, form]);
+
+  // Watch for farmer ID changes
+  const farmerIdValue = form.watch('farmerId');
+
   // Update available crops when farmer changes
   useEffect(() => {
-    const farmerId = form.getValues('farmerId');
-    if (farmerId) {
-      const farmer = getFarmerById(farmerId);
-      if (farmer) {
-        setSelectedFarmer(farmer);
-        setFarmerCrops(farmer.crops);
+    const loadFarmerCrops = async () => {
+      const farmerId = form.getValues('farmerId');
+      if (farmerId && farmerId !== initialFarmerId) {
+        try {
+          const farmer = await getFarmerById(farmerId);
+          if (farmer) {
+            setSelectedFarmer(farmer);
+            setFarmerCrops(farmer.crops || []);
 
-        // Reset the crop selection when farmer changes
-        form.setValue('cropId', '');
+            // Reset the crop selection when farmer changes
+            form.setValue('cropId', '');
+
+            // If there's only one crop, auto-select it
+            if (farmer.crops && farmer.crops.length === 1) {
+              form.setValue('cropId', farmer.crops[0].id);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading farmer crops:', error);
+          toast.error('Failed to load farmer crops');
+        }
       }
+    };
+
+    if (farmerIdValue) {
+      loadFarmerCrops();
     }
-  }, [farmerIDDep, getFarmerById, form]);
+  }, [farmerIdValue, getFarmerById, form, initialFarmerId]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const selectedCrop = getCropById(values.cropId);
+      setSubmitting(true);
+
+      // Find selected crop
+      const selectedCrop = farmerCrops.find(
+        (crop) => crop.id === values.cropId
+      );
 
       if (!selectedCrop) {
         toast.error('Selected crop not found');
         return;
       }
 
-      // Create purchase with the new structure
-      addPurchase({
+      // Create purchase with Firebase
+      await createPurchase({
         farmerId: values.farmerId,
         crop: selectedCrop,
         date: values.date,
@@ -98,16 +174,27 @@ export default function NewPurchaseForm() {
         totalAmount: values.totalAmount,
         amountPaid: values.amountPaid,
         remainingAmount: values.remainingAmount,
-        notes: values.notes,
+        notes: values.notes || '',
       });
 
       toast.success('Purchase added successfully');
       router.push('/purchases');
     } catch (error) {
-      console.error(error);
+      console.error('Error creating purchase:', error);
       toast.error('Failed to add purchase');
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
@@ -132,6 +219,7 @@ export default function NewPurchaseForm() {
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
+                        disabled={!!initialFarmerId || submitting}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -165,7 +253,7 @@ export default function NewPurchaseForm() {
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
-                        disabled={!selectedFarmer}
+                        disabled={!selectedFarmer || submitting}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -196,7 +284,7 @@ export default function NewPurchaseForm() {
                     <FormItem>
                       <FormLabel>Purchase Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" {...field} disabled={submitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -221,6 +309,7 @@ export default function NewPurchaseForm() {
                         onChange={(e) => {
                           field.onChange(parseFloat(e.target.value));
                         }}
+                        disabled={submitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -239,6 +328,7 @@ export default function NewPurchaseForm() {
                           placeholder="Enter items"
                           className="min-h-[100px]"
                           {...field}
+                          disabled={submitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -268,6 +358,7 @@ export default function NewPurchaseForm() {
                             const paid = form.getValues('amountPaid');
                             form.setValue('remainingAmount', total - paid);
                           }}
+                          disabled={submitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -291,6 +382,7 @@ export default function NewPurchaseForm() {
                             const total = form.getValues('totalAmount');
                             form.setValue('remainingAmount', total - paid);
                           }}
+                          disabled={submitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -327,6 +419,7 @@ export default function NewPurchaseForm() {
                           placeholder="Add any additional notes..."
                           className="min-h-[100px]"
                           {...field}
+                          disabled={submitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -341,13 +434,22 @@ export default function NewPurchaseForm() {
             <Button
               type="submit"
               className="bg-primary text-primary-foreground"
+              disabled={submitting}
             >
-              Add Purchase
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Add Purchase'
+              )}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => router.push('/purchases')}
+              disabled={submitting}
             >
               Cancel
             </Button>

@@ -1,23 +1,77 @@
 // src/app/purchases/[id]/page.tsx
 'use client';
 
-import { useMockData } from '@/lib/mock-data-context';
+import { useFirebase } from '@/lib/firebase/firebase-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Calendar, IndianRupee, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, IndianRupee, Tag, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import FormattedDate from '@/lib/FormattedDate';
+import { useEffect, useState } from 'react';
+import { Purchase, Farmer } from '@/types';
 
 export default function PurchaseDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { getPurchaseById, getFarmerById } = useMockData();
+  const { getFarmerById, getPurchaseById } = useFirebase();
 
-  const purchase = getPurchaseById(id);
-  const farmer = purchase ? getFarmerById(purchase.farmerId) : null;
+  const [purchase, setPurchase] = useState<Purchase | null>(null);
+  const [farmer, setFarmer] = useState<Farmer | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!purchase || !farmer) {
+  // Fetch purchase and farmer data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Get the purchase by ID
+        const purchaseData = await getPurchaseById(id as string);
+
+        if (!purchaseData) {
+          setError('Purchase not found');
+          setLoading(false);
+          return;
+        }
+
+        setPurchase(purchaseData);
+
+        // Get the farmer details
+        const farmerData = await getFarmerById(purchaseData.farmerId);
+
+        if (!farmerData) {
+          setError('Farmer information not found');
+        } else {
+          setFarmer(farmerData);
+        }
+      } catch (err) {
+        console.error('Error fetching purchase details:', err);
+        setError('Failed to load purchase details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id, getFarmerById]);
+
+  // Get purchase by ID - this would normally be in your Firebase context
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">
+          Loading purchase details...
+        </p>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !purchase || !farmer) {
     return (
       <div className="container mx-auto p-4 text-center">
         <h1 className="text-2xl font-bold mb-4">Purchase not found</h1>

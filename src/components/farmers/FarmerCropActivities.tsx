@@ -1,8 +1,7 @@
-// src/components/farmer/FarmerCropActivities.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useMockData } from '@/lib/mock-data-context';
+import { useEffect, useState } from 'react';
+import { useFirebase } from '@/lib/firebase/firebase-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,18 +14,12 @@ import {
   Image as ImageIcon,
   Plus,
   History,
+  Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import FormattedDate from '@/lib/FormattedDate';
-import { Visit, Purchase } from '@/types';
-
-// Properly typed CropActivity interface
-interface CropActivity {
-  id: string;
-  type: 'visit' | 'purchase';
-  date: string;
-  details: Visit | Purchase;
-}
+import { Visit, Purchase, Farmer, Crop, CropActivity } from '@/types';
+import { ImageCarousel } from '@/components/shared/ImageCarousel';
 
 interface FarmerCropActivitiesProps {
   farmerId: string;
@@ -38,27 +31,95 @@ export default function FarmerCropActivities({
   cropId,
 }: FarmerCropActivitiesProps) {
   const router = useRouter();
-  const { getFarmerById, getCropById, getFarmerCropActivities } = useMockData();
+  const { getFarmerById, getCropActivity, getCropById } = useFirebase();
+
   const [activeTab, setActiveTab] = useState('all');
+  const [farmer, setFarmer] = useState<Farmer | null>(null);
+  const [crop, setCrop] = useState<Crop | null>(null);
+  const [activities, setActivities] = useState<CropActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get farmer and crop data
-  const farmer = getFarmerById(farmerId);
-  const crop = getCropById(cropId);
+  // Fetch farmer, crop, and activities data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch farmer and crop in parallel
+        const [farmerData, cropData] = await Promise.all([
+          getFarmerById(farmerId),
+          getCropById(cropId),
+        ]);
 
-  // Get all activities for this farmer and crop
-  const allActivities = useMemo(() => {
-    if (!farmer || !crop) return [] as CropActivity[];
-    return getFarmerCropActivities(farmerId, cropId);
-  }, [farmerId, cropId, getFarmerCropActivities, crop, farmer]);
+        if (!farmerData) {
+          setError('Farmer not found');
+          setLoading(false);
+          return;
+        }
+
+        if (!cropData) {
+          setError('Crop not found');
+          setLoading(false);
+          return;
+        }
+
+        setFarmer(farmerData);
+        setCrop(cropData);
+
+        // Fetch all activities for this farmer and crop
+        const cropActivities = await getCropActivity(farmerId, cropId);
+        setActivities(cropActivities);
+      } catch (err) {
+        console.error('Error fetching crop activities:', err);
+        setError('Failed to load activities');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [farmerId, cropId, getFarmerById, getCropById, getCropActivity]);
 
   // Filter activities based on selected tab
-  const filteredActivities = useMemo(() => {
-    if (activeTab === 'all') return allActivities;
-    return allActivities.filter((activity) => activity.type === activeTab);
-  }, [allActivities, activeTab]);
+  const filteredActivities = activities.filter((activity) => {
+    if (activeTab === 'all') return true;
+    return activity.type === activeTab;
+  });
 
-  if (!farmer || !crop) {
-    return <div>Farmer or crop not found</div>;
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading activities...</p>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !farmer || !crop) {
+    return (
+      <div className="container mx-auto p-4 space-y-4">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <History className="h-12 w-12 text-muted-foreground opacity-50 mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Error</h3>
+            <p className="text-muted-foreground mb-4">
+              {error || 'Farmer or crop not found'}
+            </p>
+            <Button
+              onClick={() => router.push('/farmers')}
+              className="bg-primary text-primary-foreground"
+            >
+              Return to Farmers
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -112,26 +173,25 @@ export default function FarmerCropActivities({
           <TabsList>
             <TabsTrigger value="all" className="px-4">
               All
-              {allActivities.length > 0 && (
+              {activities.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {allActivities.length}
+                  {activities.length}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="visit" className="px-4">
               Visits
-              {allActivities.filter((a) => a.type === 'visit').length > 0 && (
+              {activities.filter((a) => a.type === 'visit').length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {allActivities.filter((a) => a.type === 'visit').length}
+                  {activities.filter((a) => a.type === 'visit').length}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="purchase" className="px-4">
               Purchases
-              {allActivities.filter((a) => a.type === 'purchase').length >
-                0 && (
+              {activities.filter((a) => a.type === 'purchase').length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {allActivities.filter((a) => a.type === 'purchase').length}
+                  {activities.filter((a) => a.type === 'purchase').length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -227,6 +287,17 @@ export default function FarmerCropActivities({
             onClick={() => router.push(`/${activity.type}s/${activity.id}`)}
           >
             <CardContent className="p-4">
+              {/* If visit has images, show image carousel at the top */}
+              {activity.type === 'visit' &&
+                (activity.details as Visit).images &&
+                (activity.details as Visit).images.length > 0 && (
+                  <div className="mb-4">
+                    <ImageCarousel
+                      images={(activity.details as Visit).images}
+                    />
+                  </div>
+                )}
+
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div

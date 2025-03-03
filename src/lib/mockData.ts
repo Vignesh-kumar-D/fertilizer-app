@@ -72,7 +72,7 @@ export const initialPurchases: Purchase[] = [
     amountPaid: 2000,
     remainingAmount: 400,
     notes: 'First installment paid',
-    createdBy: 'emp1',
+    employeeId: 'emp1',
     createdAt: '2024-02-24',
   },
 ];

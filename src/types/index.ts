@@ -41,7 +41,7 @@ export interface Purchase {
   amountPaid: number;
   remainingAmount: number;
   notes?: string;
-  createdBy: string;
+  employeeId: string;
   createdAt: string;
 }
 export interface CropActivity {

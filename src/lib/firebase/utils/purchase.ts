@@ -62,12 +62,12 @@ export const getPurchasesByFarmerAndCrop = async (
 
 // Create new purchase
 export const createPurchase = async (
-  purchase: Omit<Purchase, 'id' | 'createdAt'>,
+  purchase: Omit<Purchase, 'id' | 'createdAt' | 'employeeId'>,
   userId: string
 ): Promise<string> => {
   const purchaseData = {
     ...purchase,
-    createdBy: userId,
+    employeeId: userId,
     createdAt: serverTimestamp(),
   };
 
@@ -163,4 +163,20 @@ export const deletePurchase = async (id: string): Promise<void> => {
 
   // Delete the purchase
   await deleteDoc(purchaseRef);
+};
+
+export const getPurchaseById = async (id: string): Promise<Purchase | null> => {
+  try {
+    const docRef = doc(db, 'purchases', id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return convertDoc<Purchase>(docSnap);
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching purchase by ID:', error);
+    throw error;
+  }
 };

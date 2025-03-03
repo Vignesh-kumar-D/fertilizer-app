@@ -46,6 +46,7 @@ import {
   createPurchase,
   updatePurchase,
   deletePurchase,
+  getPurchaseById,
 } from '@/lib/firebase/utils/purchase';
 import {
   uploadImage,
@@ -68,7 +69,7 @@ import {
   getRecentCropActivities,
 } from '@/lib/firebase/utils/crop-activities';
 import { getPendingOfflineOperationsCount } from '@/lib/utils';
-import { addCrop, getCrops } from './utils/crops';
+import { addCrop, getCropById, getCrops } from './utils/crops';
 
 interface FirebaseContextType {
   // Authentication
@@ -109,8 +110,9 @@ interface FirebaseContextType {
 
   // Purchases
   getPurchasesByFarmerId: (farmerId: string) => Promise<Purchase[]>;
+  getPurchaseById: (id: string) => Promise<Purchase | null>;
   createPurchase: (
-    purchase: Omit<Purchase, 'id' | 'createdAt'>
+    purchase: Omit<Purchase, 'id' | 'createdAt' | 'employeeId'>
   ) => Promise<string>;
   getPurchasesByFarmerAndCrop: (
     farmerId: string,
@@ -122,6 +124,7 @@ interface FirebaseContextType {
   //crops
   getCrops: () => Promise<Crop[]>;
   addCrop: (name: string) => Promise<Crop>;
+  getCropById: (id: string) => Promise<Crop | null>;
   // Crop Activities
   getCropActivity: (
     farmerId: string,
@@ -328,6 +331,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
 
     // Purchases
     getPurchasesByFarmerId,
+    getPurchaseById,
     getPurchasesByFarmerAndCrop,
     createPurchase: (purchase) => {
       if (!currentUser)
@@ -339,6 +343,8 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
     //crops
     getCrops,
     addCrop,
+    getCropById,
+
     // Crop Activities
     getCropActivity,
     getAllCropActivities,
