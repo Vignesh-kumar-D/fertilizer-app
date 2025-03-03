@@ -108,7 +108,7 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       ...purchaseData,
       id: `purchase${Math.random().toString(36).substring(2, 7)}`,
       createdAt: new Date().toISOString(),
-      createdBy: 'emp1',
+      employeeId: 'emp1',
     };
     setPurchases((prev) => [...prev, newPurchase]);
 
