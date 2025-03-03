@@ -10,7 +10,7 @@ import FormattedDate from '@/lib/FormattedDate';
 import { Calendar, ChevronRight, Leaf, MapPin, Plus, User } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { ImageCarousel } from '@/components/shared/ImageCarousel';
+import { ImageCarousel } from '@/components/shared/Imagecarousel';
 import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/shared/loader';
 // Helper function to determine crop health color
