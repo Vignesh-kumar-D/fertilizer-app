@@ -187,7 +187,7 @@ export default function FarmerCropActivities({
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="purchase" className="px-4">
+            <TabsTrigger value="purchase" className="px-4 md:mx-2">
               Purchases
               {activities.filter((a) => a.type === 'purchase').length > 0 && (
                 <Badge variant="secondary" className="ml-2">
@@ -279,7 +279,7 @@ export default function FarmerCropActivities({
     }
 
     return (
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {activities.map((activity) => (
           <Card
             key={`${activity.type}-${activity.id}`}
@@ -287,11 +287,11 @@ export default function FarmerCropActivities({
             onClick={() => router.push(`/${activity.type}s/${activity.id}`)}
           >
             <CardContent className="p-4">
-              {/* If visit has images, show image carousel at the top */}
+              {/* If visit has images, show image carousel at the top with more compact size */}
               {activity.type === 'visit' &&
                 (activity.details as Visit).images &&
                 (activity.details as Visit).images.length > 0 && (
-                  <div className="mb-4">
+                  <div className="mb-4 aspect-video max-h-40 overflow-hidden rounded-md">
                     <ImageCarousel
                       images={(activity.details as Visit).images}
                     />
