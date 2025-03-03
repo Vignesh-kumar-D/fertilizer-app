@@ -19,7 +19,7 @@ import {
 import { useRouter } from 'next/navigation';
 import FormattedDate from '@/lib/FormattedDate';
 import { Visit, Purchase, Farmer, Crop, CropActivity } from '@/types';
-import { ImageCarousel } from '@/components/shared/ImageCarousel';
+import { ImageCarousel } from '../shared/Imagecarousel';
 
 interface FarmerCropActivitiesProps {
   farmerId: string;
