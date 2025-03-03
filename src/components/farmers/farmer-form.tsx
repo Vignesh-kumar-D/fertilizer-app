@@ -28,11 +28,13 @@ import {
 } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import {
+  AlertCircle,
   Check,
   ChevronsUpDown,
   Plus,
   X,
   Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMockData } from '@/lib/mock-data-context';
@@ -40,6 +42,9 @@ import { toast } from 'sonner';
 import { Crop } from '@/types';
 import { cn, compressImage } from '@/lib/utils';
 import Image from 'next/image';
+import { useFirebase } from '@/lib/firebase/firebase-context';
+import { ButtonLoader } from '../shared/loader';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Schema updated for new data structure
 const formSchema = z.object({
@@ -58,36 +63,66 @@ interface FarmerFormProps {
 
 export function FarmerForm({ farmerId }: FarmerFormProps) {
   const router = useRouter();
-  const { crops, addCrop, addFarmer, updateFarmer, getFarmerById } =
-    useMockData();
+  const { crops, addCrop } = useMockData();
+  const { createFarmer, updateFarmer, getFarmerById, uploadFarmerImage } =
+    useFirebase();
+
   const [selectedCrops, setSelectedCrops] = useState<Crop[]>([]);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [uploading, setUploading] = useState(false);
   const [showAddCrop, setShowAddCrop] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [farmerNotFound, setFarmerNotFound] = useState(false);
 
   // Get existing farmer data if editing
-  const existingFarmer = farmerId ? getFarmerById(farmerId) : undefined;
 
-  // Initialize form with existing data
+  // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: existingFarmer?.name || '',
-      phone: existingFarmer?.phone || '',
-      location: existingFarmer?.location || '',
-      crops: existingFarmer?.crops || [],
-      image: existingFarmer?.image || '',
+      name: '',
+      phone: '',
+      location: '',
+      crops: [],
+      image: '',
     },
   });
-
-  // Initialize selected crops when editing
   useEffect(() => {
-    if (existingFarmer?.crops) {
-      setSelectedCrops(existingFarmer.crops);
-    }
-  }, [existingFarmer]);
+    const fetchFarmer = async () => {
+      if (farmerId) {
+        setLoading(true);
+        try {
+          const farmer = await getFarmerById(farmerId);
+          if (farmer) {
+            setSelectedCrops(farmer.crops || []);
 
+            // Reset form with fetched data
+            form.reset({
+              name: farmer.name || '',
+              phone: farmer.phone || '',
+              location: farmer.location || '',
+              crops: farmer.crops || [],
+              image: farmer.image || '',
+            });
+          } else {
+            setFarmerNotFound(true);
+          }
+        } catch (error) {
+          console.error('Error fetching farmer:', error);
+          setFarmerNotFound(true);
+          toast.error('Could not load farmer data');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    fetchFarmer();
+  }, [farmerId, getFarmerById, form]);
   // Update form value when selected crops change
   useEffect(() => {
     form.setValue('crops', selectedCrops, { shouldValidate: true });
@@ -129,44 +164,147 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
 
     setUploading(true);
     try {
-      const compressedImage = await compressImage(file);
-      form.setValue('image', compressedImage, { shouldValidate: true });
+      // First compress the image locally
+      const compressedImageDataUrl = await compressImage(file);
+
+      // Store temporarily in form for preview
+      form.setValue('image', compressedImageDataUrl, { shouldValidate: true });
+
+      // If we're editing an existing farmer, upload to Firebase
+      if (farmerId) {
+        // Convert data URL to File object for upload
+        const response = await fetch(compressedImageDataUrl);
+        const blob = await response.blob();
+        const imageFile = new File([blob], file.name, { type: file.type });
+
+        // Upload to Firebase and get URL
+        const firebaseImageUrl = await uploadFarmerImage(imageFile, farmerId);
+
+        // Update form with Firebase URL
+        form.setValue('image', firebaseImageUrl, { shouldValidate: true });
+
+        // Update farmer's image in Firestore
+        await updateFarmer(farmerId, { image: firebaseImageUrl });
+      }
+
       toast.success('Image uploaded successfully');
     } catch (error) {
-      toast.error('Failed to upload image. Make sure it is under 1MB');
-      console.error(error);
+      console.error('Image upload error:', error);
+      toast.error('Failed to upload image. Please try again.');
     } finally {
       setUploading(false);
     }
   };
 
   // Handle removing the image
-  const handleRemoveImage = () => {
-    form.setValue('image', '', { shouldValidate: true });
+  const handleRemoveImage = async () => {
+    try {
+      form.setValue('image', '', { shouldValidate: true });
+
+      // If editing, update the farmer's image field in Firestore
+      if (farmerId) {
+        await updateFarmer(farmerId, { image: '' });
+        toast.success('Image removed');
+      }
+    } catch (error) {
+      console.error('Error removing image:', error);
+      toast.error('Failed to remove image');
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      setIsSubmitting(true);
+
       if (farmerId) {
-        updateFarmer(farmerId, {
-          ...values,
+        // For existing farmer
+        await updateFarmer(farmerId, {
+          name: values.name,
+          phone: values.phone,
+          location: values.location,
           crops: values.crops,
+          // The image is already updated in handleImageUpload
         });
-        toast.success('Farmer updated successfully');
+
+        toast.success('Farmer updated successfully!');
       } else {
-        addFarmer({
+        // For new farmer
+        const imageDataUrl = values.image;
+        let firebaseImageUrl = '';
+
+        // Create farmer first to get ID
+        const newFarmerId = await createFarmer({
           ...values,
-          crops: values.crops,
-          image: values.image ?? '',
+          image: '', // Temporarily empty
+          totalDue: 0,
+          totalPaid: 0,
+          lastVisitDate: new Date().toISOString(),
         });
-        toast.success('Farmer added successfully');
+
+        // If we have an image, upload it with the new farmer ID
+        if (imageDataUrl) {
+          try {
+            // Convert data URL to File
+            const response = await fetch(imageDataUrl);
+            const blob = await response.blob();
+            const imageFile = new File([blob], 'profile.jpg', {
+              type: 'image/jpeg',
+            });
+
+            // Upload to Firebase
+            firebaseImageUrl = await uploadFarmerImage(imageFile, newFarmerId);
+
+            // Update the farmer with the image URL
+            await updateFarmer(newFarmerId, { image: firebaseImageUrl });
+          } catch (imgError) {
+            console.error(
+              'Error uploading image after farmer creation:',
+              imgError
+            );
+            // Continue even if image upload fails
+          }
+        }
+
+        toast.success('Farmer created successfully');
       }
+
       router.push('/farmers');
     } catch (error) {
       console.error(error);
       toast.error('Something went wrong');
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading farmer data...</p>
+      </div>
+    );
+  }
+
+  // Show not found state
+  if (farmerNotFound) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Farmer not found. The requested farmer may have been deleted or does
+            exist.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => router.push('/farmers')}>
+          Return to Farmers List
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -195,6 +333,7 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
                         size="icon"
                         className="absolute -top-2 -right-2 h-6 w-6"
                         onClick={handleRemoveImage}
+                        disabled={uploading}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -208,7 +347,11 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
                         onChange={handleImageUpload}
                         disabled={uploading}
                       />
-                      <ImageIcon className="h-8 w-8 text-gray-400" />
+                      {uploading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-gray-400" />
+                      )}
                       <span className="text-sm text-gray-500 mt-2">
                         {uploading ? 'Uploading...' : 'Add Photo'}
                       </span>
@@ -377,8 +520,13 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
         />
 
         <div className="flex gap-4">
-          <Button type="submit" className="bg-primary text-primary-foreground">
-            {farmerId ? 'Update' : 'Add'} Farmer
+          <Button
+            type="submit"
+            className="bg-primary text-primary-foreground"
+            disabled={isSubmitting || uploading}
+          >
+            {isSubmitting && <ButtonLoader />} {farmerId ? 'Update' : 'Add'}{' '}
+            Farmer
           </Button>
           <Button
             type="button"
