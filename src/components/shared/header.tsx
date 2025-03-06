@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase/firebase-context';
 import { ButtonLoader } from './loader';
+import Image from 'next/image';
 // Base navigation items that all authenticated users can see
 const baseNavigation = [
   {
@@ -77,21 +78,13 @@ export function Header() {
       <div className="container flex h-16 items-center px-4 sm:px-8 justify-between">
         <div className="flex items-center space-x-2">
           {/* Logo/Icon */}
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-5 h-5 text-white"
-            >
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </div>
-
+          <Image
+            src={'/images/icon_maskable_512x512.png'}
+            alt={`Logo image`}
+            width={40}
+            height={40}
+            className="object-contain"
+          />
           {/* App Name */}
           <Link href="/" className="flex items-center space-x-2">
             <span

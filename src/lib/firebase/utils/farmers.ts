@@ -8,7 +8,6 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where,
   orderBy,
   limit,
   startAfter,
@@ -50,21 +49,32 @@ export const fetchFarmers = async (
 export const searchFarmers = async (searchTerm: string): Promise<Farmer[]> => {
   const farmersRef = collection(db, 'farmers');
   // Search by name starting with searchTerm
-  const q = query(
-    farmersRef,
-    orderBy('name'),
-    where('name', '>=', searchTerm),
-    where('name', '<=', searchTerm + '\uf8ff'),
-    limit(20)
-  );
 
+  // const q = query(
+  //   farmersRef,
+  //   orderBy('name'),
+  //   startAt(searchTerm),
+  //   endAt(searchTerm + '\uf8ff'),
+  //   limit(20)
+  // );
+  //  querySnapshot.forEach((doc) => {
+  //   farmers.push(convertDoc<Farmer>(doc));
+  // });
+  // // this query search for name in DB but it is case sensitive, so added a different method for now. should be updated later.
+
+  const q = query(farmersRef, limit(200));
   const querySnapshot = await getDocs(q);
   const farmers: Farmer[] = [];
 
-  querySnapshot.forEach((doc) => {
-    farmers.push(convertDoc<Farmer>(doc));
-  });
+  // Perform case-insensitive filtering in memory
+  const normalizedSearchTerm = searchTerm.toLowerCase();
 
+  querySnapshot.forEach((doc) => {
+    const farmer = convertDoc<Farmer>(doc);
+    if (farmer.name.toLowerCase().includes(normalizedSearchTerm)) {
+      farmers.push(farmer);
+    }
+  });
   return farmers;
 };
 
