@@ -1,7 +1,7 @@
 // src/app/visits/[id]/page.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useFirebase } from '@/lib/firebase/firebase-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,12 +17,12 @@ import {
   Loader2,
   User,
   MapPin,
-  ZoomIn,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { Visit, Farmer } from '@/types';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import Image from 'next/image';
+import { ImageCarousel } from '@/components/shared/Imagecarousel';
 
 export default function VisitDetailPage() {
   const router = useRouter();
@@ -34,11 +34,8 @@ export default function VisitDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [fullscreenView, setFullscreenView] = useState(false);
 
-  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const [fullscreenView, setFullscreenView] = useState(false);
 
   // Fetch visit and farmer data
   useEffect(() => {
@@ -75,64 +72,6 @@ export default function VisitDetailPage() {
   }, [id, getVisitById, getFarmerById]);
 
   // Image carousel touch/swipe handlers
-  const minSwipeDistance = 50;
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd || !visit?.images?.length) return;
-
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-      nextImage();
-    }
-
-    if (isRightSwipe) {
-      previousImage();
-    }
-
-    // Reset values
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-  // Image carousel mouse handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.cursor = 'grabbing';
-    }
-    setTouchStart(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (touchStart !== null) {
-      setTouchEnd(e.clientX);
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.cursor = 'grab';
-    }
-    handleTouchEnd();
-  };
-
-  const handleMouseLeave = () => {
-    if (imageContainerRef.current) {
-      imageContainerRef.current.style.cursor = 'grab';
-    }
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
 
   // Image navigation functions
   const nextImage = () => {
@@ -203,85 +142,6 @@ export default function VisitDetailPage() {
   const hasMultipleImages = visit.images && visit.images.length > 1;
 
   // Image Carousel Component
-  const ImageCarousel = () => (
-    <div className="relative aspect-video bg-gray-50 overflow-hidden">
-      <div
-        ref={imageContainerRef}
-        className="w-full h-full cursor-grab"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-      >
-        <Image
-          src={visit.images[currentImageIndex]}
-          alt={`Visit photo ${currentImageIndex + 1}`}
-          fill
-          className="w-full h-full object-contain"
-        />
-      </div>
-
-      {/* Fullscreen button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute right-2 top-2 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
-        onClick={() => setFullscreenView(true)}
-      >
-        <ZoomIn className="h-4 w-4" />
-      </Button>
-
-      {/* Navigation arrows */}
-      {hasMultipleImages && (
-        <>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full h-10 w-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              previousImage();
-            }}
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full h-10 w-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              nextImage();
-            }}
-          >
-            <ChevronRight className="h-6 w-6" />
-          </Button>
-        </>
-      )}
-
-      {/* Image counter & indicators */}
-      {hasMultipleImages && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/40 px-3 py-1.5 rounded-full">
-          {visit.images.map((_, index) => (
-            <button
-              key={index}
-              className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                index === currentImageIndex ? 'bg-white' : 'bg-white/40'
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setCurrentImageIndex(index);
-              }}
-              aria-label={`View image ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <div className="container mx-auto p-4 max-w-3xl">
@@ -299,7 +159,7 @@ export default function VisitDetailPage() {
         <>
           <Card className="mb-6 overflow-hidden border shadow-sm">
             <CardContent className="p-0">
-              <ImageCarousel />
+              <ImageCarousel images={visit.images} />
             </CardContent>
           </Card>
 

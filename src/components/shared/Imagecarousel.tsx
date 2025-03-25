@@ -1,154 +1,137 @@
+'use client';
+
+import { useState } from 'react';
 import Image from 'next/image';
-import { useRef, useState } from 'react';
-import { Button } from '../ui/button';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Expand } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { FullScreenImageViewer } from './FullScreenImageViewer';
 
-export function ImageCarousel({ images }: { images: string[] }) {
+interface ImageCarouselProps {
+  images: string[];
+  className?: string;
+  aspectRatio?: 'square' | 'video' | 'wide';
+  width?: number;
+  height?: number;
+}
+
+export function ImageCarousel({
+  images,
+  className,
+  aspectRatio = 'video',
+  width = 500,
+  height = 500,
+}: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
-  // Minimum swipe distance (in px)
-  const minSwipeDistance = 50;
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && currentIndex < images.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    }
-
-    if (isRightSwipe && currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-
-    // Reset values
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (carouselRef.current) {
-      carouselRef.current.style.cursor = 'grabbing';
-    }
-    setTouchStart(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (touchStart !== null) {
-      setTouchEnd(e.clientX);
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (carouselRef.current) {
-      carouselRef.current.style.cursor = 'grab';
-    }
-    handleTouchEnd();
-  };
-
-  const handleMouseLeave = () => {
-    if (carouselRef.current) {
-      carouselRef.current.style.cursor = 'grab';
-    }
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-  const handleNext = () => {
-    if (currentIndex < images.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-  };
-
-  if (!images || images.length === 0) {
+  // Handle empty image array
+  if (!images.length) {
     return (
-      <div className="bg-gray-100 rounded-lg aspect-video flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">No images</p>
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-md bg-muted flex items-center justify-center',
+          aspectRatio === 'square' && 'aspect-square',
+          aspectRatio === 'video' && 'aspect-video',
+          aspectRatio === 'wide' && 'aspect-[21/9]',
+          className
+        )}
+      >
+        <div className="text-muted-foreground text-sm">No images</div>
       </div>
     );
   }
 
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  const openFullscreen = () => {
+    setIsFullscreenOpen(true);
+  };
+
   return (
-    <div className="relative rounded-lg overflow-hidden">
+    <div className={cn('relative', className)}>
       <div
-        ref={carouselRef}
-        className="aspect-video relative cursor-grab"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
+        className={cn(
+          'relative overflow-hidden rounded-md bg-muted',
+          aspectRatio === 'square' && 'aspect-square',
+          aspectRatio === 'video' && 'aspect-video',
+          aspectRatio === 'wide' && 'aspect-[21/9]'
+        )}
       >
-        <Image
-          src={images[currentIndex]}
-          alt={`Visit image ${currentIndex + 1}`}
-          fill
-          priority={currentIndex === 0}
-          className="object-contain"
-        />
-        {/* Image counter indicator */}
-        <div className="absolute bottom-2 right-2 bg-black/50 rounded-full px-2 py-1 text-white text-xs">
-          {currentIndex + 1}/{images.length}
+        <div className="relative h-full w-full">
+          {images.map((image, index) => (
+            <div
+              key={`${image}-${index}`}
+              className={cn(
+                'absolute inset-0 transition-opacity duration-300',
+                index === currentIndex
+                  ? 'opacity-100'
+                  : 'opacity-0 pointer-events-none'
+              )}
+            >
+              <Image
+                src={image}
+                alt={`Product image ${index + 1}`}
+                fill
+                sizes={`(max-width: 768px) 100vw, ${width}px, ${height}px`}
+                className="object-cover cursor-pointer"
+                onClick={openFullscreen}
+                priority={index === 0}
+              />
+            </div>
+          ))}
         </div>
+
+        {/* Fullscreen button */}
+        <Button
+          variant="secondary"
+          size="icon"
+          className="absolute top-2 right-2 h-8 w-8 opacity-80 hover:opacity-100 z-10"
+          onClick={openFullscreen}
+        >
+          <Expand className="h-4 w-4" />
+        </Button>
+
+        {/* Navigation controls */}
+        {images.length > 1 && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-white opacity-80 hover:opacity-100 z-10"
+              onClick={handlePrevious}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-white opacity-80 hover:opacity-100 z-10"
+              onClick={handleNext}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </>
+        )}
       </div>
 
-      {/* Navigation buttons */}
-      {images.length > 1 && (
-        <>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
-            onClick={handlePrev}
-            disabled={currentIndex === 0}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
-            onClick={handleNext}
-            disabled={currentIndex === images.length - 1}
-          >
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-        </>
-      )}
-
-      {/* Dot indicators */}
+      {/* Thumbnail indicators */}
       {images.length > 1 && (
         <div className="flex justify-center mt-2 gap-1">
           {images.map((_, index) => (
             <button
               key={index}
               className={cn(
-                'h-2 w-2 rounded-full transition-all',
-                currentIndex === index ? 'bg-primary' : 'bg-gray-300'
+                'h-1.5 rounded-full transition-all',
+                index === currentIndex
+                  ? 'w-6 bg-primary'
+                  : 'w-1.5 bg-muted-foreground/30'
               )}
               onClick={() => setCurrentIndex(index)}
               aria-label={`Go to image ${index + 1}`}
@@ -156,6 +139,14 @@ export function ImageCarousel({ images }: { images: string[] }) {
           ))}
         </div>
       )}
+
+      {/* Fullscreen Image Viewer */}
+      <FullScreenImageViewer
+        images={images}
+        initialIndex={currentIndex}
+        isOpen={isFullscreenOpen}
+        onClose={() => setIsFullscreenOpen(false)}
+      />
     </div>
   );
 }
