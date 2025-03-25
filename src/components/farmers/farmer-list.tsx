@@ -1,8 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Edit2, Phone, MapPin, Plus, Leaf, Loader2 } from 'lucide-react';
+import {
+  Edit2,
+  Phone,
+  MapPin,
+  Plus,
+  Leaf,
+  Loader2,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { FarmerHeader } from './farmer-header';
@@ -17,7 +25,7 @@ import { cn } from '@/lib/utils';
 export function FarmerList() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const { getFarmers, searchFarmers } = useFirebase();
+  const { getFarmers, searchFarmers, deleteFarmer } = useFirebase();
 
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [lastDoc, setLastDoc] =
@@ -28,23 +36,22 @@ export function FarmerList() {
   const [hasMore, setHasMore] = useState(true);
 
   // Initial fetch of farmers
-  useEffect(() => {
-    const fetchInitialFarmers = async () => {
-      setLoading(true);
-      try {
-        const response = await getFarmers();
-        setFarmers(response.data);
-        setLastDoc(response.lastDoc);
-        setHasMore(response.data.length === 20); // Assuming 20 is the page size
-      } catch (error) {
-        console.error('Error fetching farmers:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInitialFarmers();
+  const fetchInitialFarmers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await getFarmers();
+      setFarmers(response.data);
+      setLastDoc(response.lastDoc);
+      setHasMore(response.data.length === 20); // Assuming 20 is the page size
+    } catch (error) {
+      console.error('Error fetching farmers:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [getFarmers]);
+  useEffect(() => {
+    fetchInitialFarmers();
+  }, [fetchInitialFarmers]);
 
   // Handle search
   useEffect(() => {
@@ -94,7 +101,18 @@ export function FarmerList() {
       setLoadingMore(false);
     }
   };
+  const handleDeleteFarmer = async (id: string) => {
+    setLoading(true);
 
+    try {
+      await deleteFarmer(id);
+      await fetchInitialFarmers();
+    } catch {
+      console.error('Error Deleting farmers:');
+    } finally {
+      setLoading(false);
+    }
+  };
   // Placeholder image for farmers without an image
   const placeholderImage = (name: string) => {
     const initials = name
@@ -161,7 +179,19 @@ export function FarmerList() {
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 
+                     group-hover:text-red-500
+                      group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFarmer(farmer.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                     {farmer.image ? (
                       <div className="relative">
                         <Image
