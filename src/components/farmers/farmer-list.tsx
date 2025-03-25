@@ -157,7 +157,6 @@ export function FarmerList() {
             <Card
               key={farmer.id}
               className="hover:border-primary/50 transition-colors relative group cursor-pointer"
-              onClick={() => router.push(`/farmers/${farmer.id}`)}
             >
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
