@@ -50,6 +50,7 @@ const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().regex(/^\d{10}$/, 'Phone number must be 10 digits'),
   location: z.string().min(2, 'Location name must be at least 2 characters'),
+  zone: z.string().min(2, 'Location name must be at least 2 characters'),
   crops: z
     .array(z.object({ id: z.string(), name: z.string() }))
     .min(1, 'Select at least one crop'),
@@ -91,6 +92,7 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
       location: '',
       crops: [],
       image: '',
+      zone: '',
     },
   });
 
@@ -129,6 +131,7 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
               location: farmer.location || '',
               crops: farmer.crops || [],
               image: farmer.image || '',
+              zone: farmer.zone || '',
             });
           } else {
             setFarmerNotFound(true);
@@ -272,6 +275,7 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
           phone: values.phone,
           location: values.location,
           crops: values.crops,
+          zone: values.zone,
           // The image is already updated in handleImageUpload
         });
 
@@ -442,7 +446,19 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
             </FormItem>
           )}
         />
-
+        <FormField
+          control={form.control}
+          name="zone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Zone</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter Zone" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="location"

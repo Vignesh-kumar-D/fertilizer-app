@@ -9,6 +9,7 @@ export interface Farmer {
   phone: string;
   image: string;
   location: string;
+  zone: string;
   crops: Crop[]; // Now an array of Crop objects
   totalDue: number;
   totalPaid: number;

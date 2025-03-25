@@ -24,6 +24,7 @@ export const initialFarmers: Farmer[] = [
     lastVisitDate: '2024-02-20',
     createdBy: 'emp1',
     createdAt: '2024-01-15',
+    zone: 'zone1',
   },
   {
     id: '2',
@@ -40,6 +41,7 @@ export const initialFarmers: Farmer[] = [
     lastVisitDate: '2024-02-18',
     createdBy: 'emp1',
     createdAt: '2024-01-20',
+    zone: 'zone1',
   },
 ];
 

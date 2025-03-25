@@ -54,7 +54,7 @@ export default function PurchaseDetailsPage() {
     };
 
     fetchData();
-  }, [id, getFarmerById]);
+  }, [id, getFarmerById, getPurchaseById]);
 
   // Get purchase by ID - this would normally be in your Firebase context
 
@@ -204,8 +204,8 @@ export default function PurchaseDetailsPage() {
           <CardContent>
             <div className="grid gap-4">
               <div className="flex items-center gap-2">
-                <Tag className="h-4 w-4 text-primary" />
-                <span>{purchase.items}</span>
+                <Tag className="h-6 w-6 text-primary" />
+                <span className="text-2xl ">{purchase.items}</span>
               </div>
             </div>
           </CardContent>

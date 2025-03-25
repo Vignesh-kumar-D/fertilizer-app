@@ -76,14 +76,14 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white">
       <div className="container flex h-16 items-center px-4 sm:px-8 justify-between">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 ">
           {/* Logo/Icon */}
           <Image
             src={'/images/icon_maskable_512x512.png'}
             alt={`Logo image`}
             width={40}
             height={40}
-            className="object-contain"
+            className="object-contain rounded-full"
           />
           {/* App Name */}
           <Link href="/" className="flex items-center space-x-2">
@@ -93,7 +93,7 @@ export function Header() {
                 'tracking-tight'
               )}
             >
-              Vetri Agro Services
+              Shree Vetri Agro Services
             </span>
             <span
               className={cn(
@@ -101,7 +101,7 @@ export function Header() {
                 'tracking-tight'
               )}
             >
-              Vetri Agro
+              Shree Vetri Agro
             </span>
           </Link>
         </div>

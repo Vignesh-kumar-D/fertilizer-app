@@ -8,9 +8,9 @@ import './globals.css';
 import { MockDataProvider } from '@/lib/mock-data-context';
 import { FirebaseProvider } from '@/lib/firebase/firebase-context';
 
-const APP_NAME = 'Vetri Agro services';
-const APP_DEFAULT_TITLE = 'Vetri Agro services';
-const APP_TITLE_TEMPLATE = 'Vetri Agro services';
+const APP_NAME = 'Shree Vetri Agro services';
+const APP_DEFAULT_TITLE = 'Shree Vetri Agro services';
+const APP_TITLE_TEMPLATE = 'Shree Vetri Agro services';
 const APP_DESCRIPTION = 'Track and manage farmer purchases and visits';
 
 const inter = Inter({ subsets: ['latin'] });

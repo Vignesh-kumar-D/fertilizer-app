@@ -142,6 +142,10 @@ export function FarmerList() {
                     </div>
                     <div className="flex items-center text-muted-foreground mt-1">
                       <MapPin className="h-4 w-4 mr-2" />
+                      <span>{farmer.zone}</span>
+                    </div>
+                    <div className="flex items-center text-muted-foreground mt-1">
+                      <MapPin className="h-4 w-4 mr-2" />
                       <span>{farmer.location}</span>
                     </div>
                   </div>
