@@ -1,46 +1,64 @@
-// src/components/farmers/farmer-header.tsx
 'use client';
 
-import { Plus, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Plus, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface FarmerHeaderProps {
-  searchTerm?: string;
-  onSearchChange?: (value: string) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  searchField: string;
+  onSearchFieldChange: (value: string) => void;
 }
 
 export function FarmerHeader({
-  searchTerm = '',
+  searchTerm,
   onSearchChange,
+  searchField,
+  onSearchFieldChange,
 }: FarmerHeaderProps) {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <h1 className="text-2xl font-bold text-foreground">Farmers</h1>
-
-      <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-4">
-        <div className="relative flex-1 sm:flex-initial min-w-[280px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex items-center w-full sm:w-auto space-x-2">
+        <div className="relative flex-1 sm:w-64 flex items-center">
+          <Search className="h-4 w-4 absolute left-3 text-muted-foreground" />
           <Input
-            type="text"
             placeholder="Search farmers..."
-            className="pl-10"
             value={searchTerm}
-            onChange={(e) => onSearchChange?.(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-9 pr-4"
           />
         </div>
-
-        <Button
-          onClick={() => router.push('/farmers/new')}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Farmer
-        </Button>
+        <Select value={searchField} onValueChange={onSearchFieldChange}>
+          <SelectTrigger className="w-[120px] sm:w-[180px]">
+            <SelectValue placeholder="Search by" />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <SelectItem value="name">Name</SelectItem>
+            <SelectItem value="phone">Phone</SelectItem>
+            <SelectItem value="location">Location</SelectItem>
+            <SelectItem value="zone">Zone</SelectItem>
+            <SelectItem value="crops">Crops</SelectItem>
+            <SelectItem value="all">All Fields</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+      <Button
+        onClick={() => router.push('/farmers/new')}
+        className="w-full sm:w-auto"
+      >
+        <Plus className="mr-2 h-4 w-4" /> Add Farmer
+      </Button>
     </div>
   );
 }

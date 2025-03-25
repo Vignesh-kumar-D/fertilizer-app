@@ -88,7 +88,7 @@ interface FirebaseContextType {
     data: Farmer[];
     lastDoc: QueryDocumentSnapshot<DocumentData> | null;
   }>;
-  searchFarmers: (searchTerm: string) => Promise<Farmer[]>;
+  searchFarmers: (searchTerm: string, searchField: string) => Promise<Farmer[]>;
   getFarmerById: (id: string) => Promise<Farmer | null>;
   createFarmer: (
     farmer: Omit<Farmer, 'id' | 'createdAt' | 'createdBy'>

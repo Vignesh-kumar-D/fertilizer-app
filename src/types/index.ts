@@ -1,6 +1,7 @@
 export interface Crop {
   id: string;
   name: string;
+  displayName?: string;
 }
 
 export interface Farmer {
@@ -10,12 +11,16 @@ export interface Farmer {
   image: string;
   location: string;
   zone: string;
-  crops: Crop[]; // Now an array of Crop objects
+  crops: Crop[]; // Array of Crop objects
   totalDue: number;
   totalPaid: number;
   lastVisitDate: string;
   createdBy: string;
   createdAt: string;
+  // Display fields for original case formatting
+  displayName?: string;
+  displayLocation?: string;
+  displayZone?: string;
 }
 
 export interface Visit {

@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 export function FarmerList() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchField, setSearchField] = useState('name');
   const { getFarmers, searchFarmers, deleteFarmer } = useFirebase();
 
   const [farmers, setFarmers] = useState<Farmer[]>([]);
@@ -49,6 +50,7 @@ export function FarmerList() {
       setLoading(false);
     }
   }, [getFarmers]);
+
   useEffect(() => {
     fetchInitialFarmers();
   }, [fetchInitialFarmers]);
@@ -67,7 +69,7 @@ export function FarmerList() {
 
       setSearching(true);
       try {
-        const results = await searchFarmers(searchTerm);
+        const results = await searchFarmers(searchTerm, searchField);
         setFarmers(results);
         setHasMore(false); // Search results don't support pagination in this implementation
       } catch (error) {
@@ -83,7 +85,7 @@ export function FarmerList() {
     }, 300);
 
     return () => clearTimeout(debounceTimeout);
-  }, [searchTerm, getFarmers, searchFarmers]);
+  }, [searchTerm, searchField, getFarmers, searchFarmers]);
 
   // Load more farmers
   const loadMoreFarmers = async () => {
@@ -101,6 +103,7 @@ export function FarmerList() {
       setLoadingMore(false);
     }
   };
+
   const handleDeleteFarmer = async (id: string) => {
     setLoading(true);
 
@@ -113,6 +116,7 @@ export function FarmerList() {
       setLoading(false);
     }
   };
+
   // Placeholder image for farmers without an image
   const placeholderImage = (name: string) => {
     const initials = name
@@ -131,7 +135,12 @@ export function FarmerList() {
 
   return (
     <div className="space-y-4">
-      <FarmerHeader searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+      <FarmerHeader
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchField={searchField}
+        onSearchFieldChange={setSearchField}
+      />
 
       {/* Loading State */}
       {(loading || searching) && (
@@ -153,18 +162,20 @@ export function FarmerList() {
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold text-lg">{farmer.name}</h3>
+                    <h3 className="font-semibold text-lg">
+                      {farmer.displayName || farmer.name}
+                    </h3>
                     <div className="flex items-center text-muted-foreground mt-1">
                       <Phone className="h-4 w-4 mr-2" />
                       <span>{farmer.phone}</span>
                     </div>
                     <div className="flex items-center text-muted-foreground mt-1">
                       <MapPin className="h-4 w-4 mr-2" />
-                      <span>{farmer.zone}</span>
+                      <span>{farmer.displayZone || farmer.zone}</span>
                     </div>
                     <div className="flex items-center text-muted-foreground mt-1">
                       <MapPin className="h-4 w-4 mr-2" />
-                      <span>{farmer.location}</span>
+                      <span>{farmer.displayLocation || farmer.location}</span>
                     </div>
                   </div>
                   <div className="flex gap-2 items-center">
@@ -260,7 +271,10 @@ export function FarmerList() {
                             );
                           }}
                         >
-                          {crop.name}
+                          {/* Capitalize the first letter of each crop name for display */}
+                          {crop.displayName ||
+                            crop.name.charAt(0).toUpperCase() +
+                              crop.name.slice(1)}
                         </Badge>
                       ))
                     ) : (
@@ -303,7 +317,9 @@ export function FarmerList() {
 
           {farmers.length === 0 && !loading && (
             <div className="col-span-full text-center py-8 text-muted-foreground">
-              {searchTerm ? 'No farmers match your search' : 'No farmers found'}
+              {searchTerm
+                ? `No farmers match your ${searchField} search`
+                : 'No farmers found'}
             </div>
           )}
         </div>
