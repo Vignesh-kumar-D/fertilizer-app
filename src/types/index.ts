@@ -26,14 +26,19 @@ export interface Farmer {
 export interface Visit {
   id: string;
   farmerId: string;
-  crop: Crop; // Single crop object
-  images: string[];
-  date: string;
-  notes: string;
-  cropHealth: 'good' | 'average' | 'poor';
-  recommendations: string;
+  crop: {
+    id: string;
+    name: string;
+  };
   employeeId: string;
+  employeeName?: string;
+  date: string;
+  cropHealth: 'good' | 'average' | 'poor';
+  notes: string;
+  recommendations: string;
+  images: string[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Purchase {

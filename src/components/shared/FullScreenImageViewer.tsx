@@ -6,7 +6,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 interface FullScreenImageViewerProps {
   images: string[];
   initialIndex?: number;
@@ -89,8 +89,13 @@ export function FullScreenImageViewer({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogTitle>Images </DialogTitle>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/90 border-none">
+      <DialogContent
+        aria-labelledby="custom-title"
+        className="max-w-[95vw] max-h-[95vh] p-0 bg-black/90 border-none"
+      >
+        <VisuallyHidden>
+          <DialogTitle>Full screen Images</DialogTitle>
+        </VisuallyHidden>
         {/* Main flex container */}
         <div className="flex flex-col h-[90vh] w-full relative">
           {/* Top bar with close button */}

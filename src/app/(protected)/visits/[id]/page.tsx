@@ -20,9 +20,10 @@ import {
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { Visit, Farmer } from '@/types';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import Image from 'next/image';
 import { ImageCarousel } from '@/components/shared/Imagecarousel';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 export default function VisitDetailPage() {
   const router = useRouter();
@@ -167,6 +168,9 @@ export default function VisitDetailPage() {
           <Dialog open={fullscreenView} onOpenChange={setFullscreenView}>
             <DialogContent className="max-w-screen-lg w-[90vw] h-[90vh] p-0 bg-black">
               <div className="relative w-full h-full flex items-center justify-center">
+                <VisuallyHidden>
+                  <DialogTitle>Visit Image</DialogTitle>
+                </VisuallyHidden>
                 <Image
                   src={visit.images[currentImageIndex]}
                   alt={`Visit photo ${currentImageIndex + 1}`}

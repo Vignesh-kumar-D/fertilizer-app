@@ -7,12 +7,30 @@ import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/lib/firebase/firebase-context';
 import { Visit, Farmer } from '@/types';
 import FormattedDate from '@/lib/FormattedDate';
-import { Calendar, ChevronRight, Leaf, MapPin, Plus, User } from 'lucide-react';
+import {
+  Calendar,
+  ChevronRight,
+  Edit,
+  Leaf,
+  Loader2,
+  MapPin,
+  Plus,
+  Trash,
+  User,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 import { cn } from '@/lib/utils';
 import { ImageCarousel } from '@/components/shared/Imagecarousel';
 import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/shared/loader';
+
 // Helper function to determine crop health color
 const getCropHealthColor = (health: string) => {
   switch (health) {
@@ -27,17 +45,14 @@ const getCropHealthColor = (health: string) => {
   }
 };
 
-// Image Carousel Component
-
 export default function VisitList() {
   const router = useRouter();
-  const { getVisitsByFarmerId, getFarmers } = useFirebase();
+  const { getVisitsByFarmerId, getFarmers, deleteVisit } = useFirebase();
   const [visits, setVisits] = useState<Visit[]>([]);
   const [farmers, setFarmers] = useState<Record<string, Farmer>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  // const [selectedFarmerId] = useState<string>('');
-  // const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
   // Fetch all visits
   useEffect(() => {
@@ -58,9 +73,6 @@ export default function VisitList() {
         // Then fetch visits for selected farmer or all visits
         let allVisits: Visit[] = [];
 
-        // if (selectedFarmerId) {
-        //   allVisits = await getVisitsByFarmerId(selectedFarmerId);
-        // } else {
         // Fetch visits for each farmer
         const visitPromises = farmersResponse.data.map((farmer) =>
           getVisitsByFarmerId(farmer.id)
@@ -68,7 +80,6 @@ export default function VisitList() {
 
         const visitsArrays = await Promise.all(visitPromises);
         allVisits = visitsArrays.flat();
-        // }
 
         // Sort visits by date (newest first)
         allVisits.sort(
@@ -102,21 +113,22 @@ export default function VisitList() {
     );
   });
 
-  // const handleDeleteVisit = async (id: string) => {
-  //   if (window.confirm('Are you sure you want to delete this visit?')) {
-  //     setDeleteLoading(id);
-  //     try {
-  //       await deleteVisit(id);
-  //       setVisits((prev) => prev.filter((visit) => visit.id !== id));
-  //       toast.success('Visit deleted successfully');
-  //     } catch (error) {
-  //       console.error('Error deleting visit:', error);
-  //       toast.error('Failed to delete visit');
-  //     } finally {
-  //       setDeleteLoading(null);
-  //     }
-  //   }
-  // };
+  const handleDeleteVisit = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this visit?')) {
+      setDeleteLoading(id);
+      try {
+        await deleteVisit(id);
+        setVisits((prev) => prev.filter((visit) => visit.id !== id));
+        toast.success('Visit deleted successfully');
+      } catch (error) {
+        console.error('Error deleting visit:', error);
+        toast.error('Failed to delete visit');
+      } finally {
+        setDeleteLoading(null);
+      }
+    }
+  };
+
   if (loading) {
     return <PageLoader />;
   }
@@ -185,7 +197,7 @@ export default function VisitList() {
                     </div>
                   </div>
 
-                  {/* <div className="flex space-x-1">
+                  <div className="flex space-x-1">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -232,7 +244,7 @@ export default function VisitList() {
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                  </div> */}
+                  </div>
                 </div>
 
                 <div className="flex items-center text-sm mt-3">
