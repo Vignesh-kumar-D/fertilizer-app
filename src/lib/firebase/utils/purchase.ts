@@ -12,7 +12,8 @@ import {
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db } from '../config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../config';
 import { Purchase } from '@/types';
 import { convertDoc } from '../../utils';
 
@@ -69,6 +70,9 @@ export const createPurchase = async (
     ...purchase,
     employeeId: userId,
     createdAt: serverTimestamp(),
+    // Ensure new fields are included
+    isWorkingCombo: purchase.isWorkingCombo || false,
+    images: purchase.images || [],
   };
 
   const docRef = await addDoc(collection(db, 'purchases'), purchaseData);
@@ -179,4 +183,29 @@ export const getPurchaseById = async (id: string): Promise<Purchase | null> => {
     console.error('Error fetching purchase by ID:', error);
     throw error;
   }
+};
+
+// Upload purchase images
+export const uploadPurchaseImages = async (
+  files: File[],
+  purchaseId: string
+): Promise<string[]> => {
+  const imageUrls: string[] = [];
+
+  files.forEach(async (file, index) => {
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `image_${index}.${fileExtension}`;
+    const storageRef = ref(storage, `purchases/${purchaseId}/${fileName}`);
+
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+      imageUrls.push(downloadUrl);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error;
+    }
+  });
+
+  return imageUrls;
 };

@@ -75,6 +75,8 @@ export const initialPurchases: Purchase[] = [
     remainingAmount: 400,
     notes: 'First installment paid',
     employeeId: 'emp1',
+    images: [],
+    isWorkingCombo: false,
     createdAt: '2024-02-24',
   },
 ];

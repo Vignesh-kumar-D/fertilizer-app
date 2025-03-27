@@ -26,10 +26,7 @@ export interface Farmer {
 export interface Visit {
   id: string;
   farmerId: string;
-  crop: {
-    id: string;
-    name: string;
-  };
+  crop: Crop;
   employeeId: string;
   employeeName?: string;
   date: string;
@@ -44,16 +41,20 @@ export interface Visit {
 export interface Purchase {
   id: string;
   farmerId: string;
-  crop: Crop; // Single crop object
+  crop: Crop;
   date: string;
   items: string;
-  quantity: number; // Added quantity field
+  quantity: number;
   totalAmount: number;
   amountPaid: number;
   remainingAmount: number;
-  notes?: string;
-  employeeId: string;
+  notes: string;
   createdAt: string;
+  updatedAt?: string;
+  employeeId: string;
+  // New fields
+  isWorkingCombo?: boolean;
+  images?: string[];
 }
 export interface CropActivity {
   id: string;

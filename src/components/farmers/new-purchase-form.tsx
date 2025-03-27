@@ -1,4 +1,3 @@
-// src/app/purchases/new/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,6 +7,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
   FormControl,
@@ -15,6 +15,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -25,12 +26,33 @@ import {
 } from '@/components/ui/select';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Loader2,
+  Trash2,
+  Image as ImageIcon,
+  X,
+} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Crop, Farmer } from '@/types';
+import { Crop, Farmer, Purchase } from '@/types';
 import { useFirebase } from '@/lib/firebase/firebase-context';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import Image from 'next/image';
+import { compressImage } from '@/lib/utils';
+import { FullScreenImageViewer } from '@/components/shared/FullScreenImageViewer';
+import { uploadPurchaseImages } from '@/lib/firebase/utils/purchase';
 
-// Updated schema to include crop and quantity
+// Updated schema to include crop, quantity, working combo and images
 const formSchema = z.object({
   farmerId: z.string().min(1, 'Please select a farmer'),
   cropId: z.string().min(1, 'Please select a crop'),
@@ -41,40 +63,121 @@ const formSchema = z.object({
   amountPaid: z.number().min(0),
   remainingAmount: z.number(),
   notes: z.string().optional(),
+  isWorkingCombo: z.boolean().default(false),
+  images: z.array(z.string()).default([]),
 });
 
-export default function NewPurchaseForm() {
+interface PurchaseFormProps {
+  purchaseId?: string; // Optional purchase ID for editing mode
+  initialFarmerId?: string; // Optional farmer ID for pre-selection
+}
+
+export default function PurchaseForm({
+  purchaseId,
+  initialFarmerId,
+}: PurchaseFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { getFarmers, getFarmerById, createPurchase } = useFirebase();
+  const {
+    getFarmers,
+    getFarmerById,
+    createPurchase,
+    updatePurchase,
+    getPurchaseById,
+    deletePurchase,
+  } = useFirebase();
 
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
   const [farmerCrops, setFarmerCrops] = useState<Crop[]>([]);
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [editPurchase, setEditPurchase] = useState<Purchase | null>(null);
 
-  const initialFarmerId = searchParams.get('farmerId');
+  // Image handling state
+  const [uploading, setUploading] = useState(false);
+  const [imagesToUpload, setImagesToUpload] = useState<File[]>([]);
+
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerImageIndex, setViewerImageIndex] = useState(0);
+
+  const queryFarmerId = searchParams.get('farmerId') || initialFarmerId || '';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
       items: '',
-      farmerId: initialFarmerId || '',
+      farmerId: queryFarmerId,
       cropId: '',
       quantity: 1,
       totalAmount: 0,
       amountPaid: 0,
       remainingAmount: 0,
       notes: '',
+      isWorkingCombo: false,
+      images: [],
     },
   });
+
+  // Determine if we're in edit mode
+  useEffect(() => {
+    if (purchaseId) {
+      setIsEdit(true);
+      setLoading(true);
+
+      // Fetch purchase data
+      const fetchPurchase = async () => {
+        try {
+          const purchase = await getPurchaseById(purchaseId);
+          if (purchase) {
+            setEditPurchase(purchase);
+
+            // Set form values from purchase
+            form.setValue('farmerId', purchase.farmerId);
+            form.setValue('cropId', purchase.crop.id);
+            form.setValue('date', purchase.date);
+            form.setValue('items', purchase.items);
+            form.setValue('quantity', purchase.quantity);
+            form.setValue('totalAmount', purchase.totalAmount);
+            form.setValue('amountPaid', purchase.amountPaid);
+            form.setValue('remainingAmount', purchase.remainingAmount);
+            form.setValue('notes', purchase.notes || '');
+            form.setValue('isWorkingCombo', purchase.isWorkingCombo || false);
+
+            // Handle images
+            if (purchase.images && purchase.images.length > 0) {
+              form.setValue('images', purchase.images);
+            }
+
+            // Load farmer data
+            const farmer = await getFarmerById(purchase.farmerId);
+            if (farmer) {
+              setSelectedFarmer(farmer);
+              setFarmerCrops(farmer.crops || []);
+            }
+          } else {
+            toast.error('Purchase not found');
+            router.push('/purchases');
+          }
+        } catch (error) {
+          console.error('Error loading purchase:', error);
+          toast.error('Failed to load purchase details');
+          router.push('/purchases');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchPurchase();
+    }
+  }, [purchaseId, getPurchaseById, getFarmerById, form, router]);
 
   // Fetch all farmers
   useEffect(() => {
     const fetchFarmers = async () => {
-      setLoading(true);
+      if (!isEdit) setLoading(true);
       try {
         const response = await getFarmers();
         setFarmers(response.data);
@@ -82,19 +185,21 @@ export default function NewPurchaseForm() {
         console.error('Error fetching farmers:', error);
         toast.error('Failed to load farmers');
       } finally {
-        setLoading(false);
+        if (!isEdit) setLoading(false);
       }
     };
 
     fetchFarmers();
-  }, [getFarmers]);
+  }, [getFarmers, isEdit]);
 
   // Load initial farmer if farmerId is provided
   useEffect(() => {
+    if (isEdit) return; // Skip for edit mode
+
     const loadInitialFarmer = async () => {
-      if (initialFarmerId) {
+      if (queryFarmerId) {
         try {
-          const farmer = await getFarmerById(initialFarmerId);
+          const farmer = await getFarmerById(queryFarmerId);
           if (farmer) {
             setSelectedFarmer(farmer);
             setFarmerCrops(farmer.crops || []);
@@ -111,19 +216,23 @@ export default function NewPurchaseForm() {
       }
     };
 
-    if (initialFarmerId) {
-      loadInitialFarmer();
-    }
-  }, [initialFarmerId, getFarmerById, form]);
+    loadInitialFarmer();
+  }, [queryFarmerId, getFarmerById, form, isEdit]);
 
   // Watch for farmer ID changes
   const farmerIdValue = form.watch('farmerId');
 
   // Update available crops when farmer changes
   useEffect(() => {
+    if (isEdit && !editPurchase) return; // Wait for edit data to load
+
     const loadFarmerCrops = async () => {
       const farmerId = form.getValues('farmerId');
-      if (farmerId && farmerId !== initialFarmerId) {
+      if (
+        farmerId &&
+        ((isEdit && editPurchase?.farmerId !== farmerId) ||
+          (!isEdit && farmerId !== queryFarmerId))
+      ) {
         try {
           const farmer = await getFarmerById(farmerId);
           if (farmer) {
@@ -145,10 +254,82 @@ export default function NewPurchaseForm() {
       }
     };
 
-    if (farmerIdValue) {
-      loadFarmerCrops();
+    loadFarmerCrops();
+  }, [farmerIdValue, getFarmerById, form, queryFarmerId, isEdit, editPurchase]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    const currentImages = form.getValues('images');
+    if (currentImages.length + files.length > 5) {
+      toast.error('Maximum 5 images allowed');
+      return;
     }
-  }, [farmerIdValue, getFarmerById, form, initialFarmerId]);
+
+    setUploading(true);
+    try {
+      // Store files for later upload to Firebase
+      const newFiles = Array.from(files);
+      setImagesToUpload((prev) => [...prev, ...newFiles]);
+
+      // Process for preview
+      const compressedImages = await Promise.all(
+        newFiles.map((file) => compressImage(file))
+      );
+
+      form.setValue('images', [...currentImages, ...compressedImages], {
+        shouldValidate: true,
+      });
+      toast.success('Images added for upload');
+    } catch (error) {
+      console.error('Error compressing images:', error);
+      toast.error(
+        'Failed to process images. Make sure each image is under 2MB'
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const currentImages = form.getValues('images');
+
+    // If it's an initial image from the database, mark it for deletion
+
+    // Remove from preview images
+    form.setValue(
+      'images',
+      currentImages.filter((_, i) => i !== index),
+      { shouldValidate: true }
+    );
+
+    // Remove from files to upload
+    if (index < imagesToUpload.length) {
+      setImagesToUpload((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleImageClick = (index: number) => {
+    setViewerImageIndex(index);
+    setViewerOpen(true);
+  };
+
+  const handleDeletePurchase = async () => {
+    if (!purchaseId) return;
+
+    try {
+      setSubmitting(true);
+      await deletePurchase(purchaseId);
+      toast.success('Purchase deleted successfully');
+      router.push('/purchases');
+    } catch (error) {
+      console.error('Error deleting purchase:', error);
+      toast.error('Failed to delete purchase');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -164,7 +345,53 @@ export default function NewPurchaseForm() {
         return;
       }
 
-      // Create purchase with Firebase
+      // Handle Edit mode
+      if (isEdit && purchaseId) {
+        // Update the purchase details
+        await updatePurchase(purchaseId, {
+          farmerId: values.farmerId,
+          crop: selectedCrop,
+          date: values.date,
+          items: values.items,
+          quantity: values.quantity,
+          totalAmount: values.totalAmount,
+          amountPaid: values.amountPaid,
+          remainingAmount: values.remainingAmount,
+          notes: values.notes || '',
+          isWorkingCombo: values.isWorkingCombo,
+          // Don't update images yet
+        });
+
+        // Handle image updates if any
+        let updatedImageUrls = values.images.filter(
+          (img) => !imagesToUpload.some((file) => img.includes(file.name))
+        );
+
+        // Upload new images if any
+        if (imagesToUpload.length > 0) {
+          try {
+            const newImageUrls = await uploadPurchaseImages(
+              imagesToUpload,
+              purchaseId
+            );
+            updatedImageUrls = [...updatedImageUrls, ...newImageUrls];
+          } catch (imgError) {
+            console.error('Error uploading images:', imgError);
+            toast.error(
+              'Purchase updated but new images could not be uploaded'
+            );
+          }
+        }
+
+        // Update with final image URLs
+        await updatePurchase(purchaseId, { images: updatedImageUrls });
+
+        toast.success('Purchase updated successfully');
+        router.push('/purchases');
+        return;
+      }
+
+      // Create new purchase
       await createPurchase({
         farmerId: values.farmerId,
         crop: selectedCrop,
@@ -175,19 +402,40 @@ export default function NewPurchaseForm() {
         amountPaid: values.amountPaid,
         remainingAmount: values.remainingAmount,
         notes: values.notes || '',
+        isWorkingCombo: values.isWorkingCombo,
+        images: [],
       });
 
+      // If we have images to upload
+      // if (imagesToUpload.length > 0) {
+      //   try {
+      //     const imageUrls = await uploadPurchaseImages(
+      //       imagesToUpload,
+      //       purchaseId
+      //     );
+
+      //     // Update the purchase with image URLs
+      //     await updatePurchase(purchaseId, { images: imageUrls });
+
+      //     toast.success('Purchase and images added successfully');
+      //   } catch (imgError) {
+      //     console.error('Error uploading images:', imgError);
+      //     toast.error('Purchase created but images could not be uploaded');
+      //   }
+      // } else {
       toast.success('Purchase added successfully');
+      // }
+
       router.push('/purchases');
     } catch (error) {
       console.error('Error creating purchase:', error);
-      toast.error('Failed to add purchase');
+      toast.error(`Failed to ${isEdit ? 'update' : 'add'} purchase`);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loading && (!isEdit || !editPurchase)) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -198,11 +446,52 @@ export default function NewPurchaseForm() {
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
-      <div className="mb-6 flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">Add Purchase</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {isEdit ? 'Edit Purchase' : 'Add Purchase'}
+          </h1>
+        </div>
+
+        {isEdit && purchaseId && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this purchase record. This action
+                  cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground"
+                  onClick={handleDeletePurchase}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <Form {...form}>
@@ -218,8 +507,8 @@ export default function NewPurchaseForm() {
                       <FormLabel>Select Farmer</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        disabled={!!initialFarmerId || submitting}
+                        value={field.value}
+                        disabled={(isEdit && !editPurchase) || submitting}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -252,7 +541,7 @@ export default function NewPurchaseForm() {
                       <FormLabel>Select Crop</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         disabled={!selectedFarmer || submitting}
                       >
                         <FormControl>
@@ -316,7 +605,7 @@ export default function NewPurchaseForm() {
                   </FormItem>
                 )}
               />
-              <div className="space-y-4">
+              <div className="space-y-4 mt-4">
                 <FormField
                   control={form.control}
                   name="items"
@@ -332,6 +621,31 @@ export default function NewPurchaseForm() {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="mt-4">
+                <FormField
+                  control={form.control}
+                  name="isWorkingCombo"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={submitting}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Working Combo</FormLabel>
+                        <FormDescription>
+                          Mark this as a working combo if this combination works
+                          well.
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -429,7 +743,76 @@ export default function NewPurchaseForm() {
               </div>
             </CardContent>
           </Card>
-
+          <Card>
+            <CardContent className="pt-6">
+              <FormField
+                control={form.control}
+                name="images"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Photos</FormLabel>
+                    <FormControl>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {field.value.map((image, index) => (
+                            <div key={index} className="relative aspect-square">
+                              <Image
+                                src={image}
+                                fill
+                                alt={`Purchase photo ${index + 1}`}
+                                className="object-cover rounded-lg w-full h-full cursor-pointer"
+                                onClick={() => handleImageClick(index)}
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2 h-6 w-6"
+                                onClick={() => removeImage(index)}
+                                disabled={uploading || submitting}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          {field.value.length < 5 && (
+                            <label
+                              className={`border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center transition-colors ${
+                                submitting
+                                  ? 'cursor-not-allowed border-gray-200'
+                                  : 'cursor-pointer hover:border-primary border-gray-300'
+                              }`}
+                            >
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                                onChange={handleImageUpload}
+                                disabled={uploading || submitting}
+                              />
+                              {uploading ? (
+                                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                              ) : (
+                                <ImageIcon className="h-8 w-8 text-gray-400" />
+                              )}
+                              <span className="text-sm text-gray-500 mt-2">
+                                {uploading ? 'Processing...' : 'Add Photos'}
+                              </span>
+                            </label>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Add up to 5 photos. Each photo should be under 2MB.
+                        </p>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
           <div className="flex gap-4">
             <Button
               type="submit"
@@ -439,8 +822,10 @@ export default function NewPurchaseForm() {
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  {isEdit ? 'Updating...' : 'Saving...'}
                 </>
+              ) : isEdit ? (
+                'Update Purchase'
               ) : (
                 'Add Purchase'
               )}
@@ -456,6 +841,14 @@ export default function NewPurchaseForm() {
           </div>
         </form>
       </Form>
+
+      {/* Image Viewer for full-screen viewing */}
+      <FullScreenImageViewer
+        images={form.getValues('images')}
+        initialIndex={viewerImageIndex}
+        isOpen={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   );
 }
