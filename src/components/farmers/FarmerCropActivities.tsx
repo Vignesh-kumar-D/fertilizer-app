@@ -291,8 +291,9 @@ export default function FarmerCropActivities({
               {activity.type === 'visit' &&
                 (activity.details as Visit).images &&
                 (activity.details as Visit).images.length > 0 && (
-                  <div className="mb-4 aspect-video max-h-40 overflow-hidden rounded-md">
+                  <div className="mb-4 ">
                     <ImageCarousel
+                      aspectRatio="wide"
                       images={(activity.details as Visit).images}
                     />
                   </div>

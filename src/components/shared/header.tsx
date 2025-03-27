@@ -93,7 +93,7 @@ export function Header() {
                 'tracking-tight'
               )}
             >
-              Sree Vetri Agro Services
+              SREE VETRI AGRO SERVICES
             </span>
             <span
               className={cn(
@@ -101,7 +101,7 @@ export function Header() {
                 'tracking-tight'
               )}
             >
-              Sree Vetri Agro
+              SREE VETRI AGRO SERVICES
             </span>
           </Link>
         </div>

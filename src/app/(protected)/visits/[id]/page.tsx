@@ -155,59 +155,6 @@ export default function VisitDetailPage() {
           {farmer && <p className="text-muted-foreground">{farmer.name}</p>}
         </div>
       </div>
-
-      {hasImages && (
-        <>
-          <Card className="mb-6 overflow-hidden border shadow-sm">
-            <CardContent className="p-0">
-              <ImageCarousel images={visit.images} />
-            </CardContent>
-          </Card>
-
-          {/* Fullscreen dialog for images */}
-          <Dialog open={fullscreenView} onOpenChange={setFullscreenView}>
-            <DialogContent className="max-w-screen-lg w-[90vw] h-[90vh] p-0 bg-black">
-              <div className="relative w-full h-full flex items-center justify-center">
-                <VisuallyHidden>
-                  <DialogTitle>Visit Image</DialogTitle>
-                </VisuallyHidden>
-                <Image
-                  src={visit.images[currentImageIndex]}
-                  alt={`Visit photo ${currentImageIndex + 1}`}
-                  fill
-                  className="max-w-full max-h-full object-contain"
-                />
-
-                {hasMultipleImages && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full h-12 w-12"
-                      onClick={previousImage}
-                    >
-                      <ChevronLeft className="h-8 w-8" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full h-12 w-12"
-                      onClick={nextImage}
-                    >
-                      <ChevronRight className="h-8 w-8" />
-                    </Button>
-                  </>
-                )}
-
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded-full px-3 py-1.5">
-                  {currentImageIndex + 1} / {visit.images.length}
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
-
       <div className="grid gap-6">
         {farmer && (
           <Card>
@@ -233,13 +180,6 @@ export default function VisitDetailPage() {
                   <span>{farmer.phone}</span>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => router.push(`/farmers/${farmer.id}`)}
-              >
-                View Farmer Profile
-              </Button>
             </CardContent>
           </Card>
         )}
@@ -281,18 +221,57 @@ export default function VisitDetailPage() {
             </div>
           </CardContent>
         </Card>
+        {hasImages && (
+          <>
+            <Card className="mb-6 overflow-hidden border shadow-sm">
+              <CardContent className="p-0">
+                <ImageCarousel images={visit.images} />
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Clipboard className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Notes</h2>
-            </div>
-            <p className="text-muted-foreground whitespace-pre-wrap">
-              {visit.notes}
-            </p>
-          </CardContent>
-        </Card>
+            {/* Fullscreen dialog for images */}
+            <Dialog open={fullscreenView} onOpenChange={setFullscreenView}>
+              <DialogContent className="max-w-screen-lg w-[90vw] h-[90vh] p-0 bg-black">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <VisuallyHidden>
+                    <DialogTitle>Visit Image</DialogTitle>
+                  </VisuallyHidden>
+                  <Image
+                    src={visit.images[currentImageIndex]}
+                    alt={`Visit photo ${currentImageIndex + 1}`}
+                    fill
+                    className="max-w-full max-h-full object-contain"
+                  />
+
+                  {hasMultipleImages && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full h-12 w-12"
+                        onClick={previousImage}
+                      >
+                        <ChevronLeft className="h-8 w-8" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full h-12 w-12"
+                        onClick={nextImage}
+                      >
+                        <ChevronRight className="h-8 w-8" />
+                      </Button>
+                    </>
+                  )}
+
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded-full px-3 py-1.5">
+                    {currentImageIndex + 1} / {visit.images.length}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
 
         <Card>
           <CardContent className="p-6">
@@ -302,6 +281,17 @@ export default function VisitDetailPage() {
             </div>
             <p className="text-muted-foreground whitespace-pre-wrap">
               {visit.recommendations}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Clipboard className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold">Notes</h2>
+            </div>
+            <p className="text-muted-foreground whitespace-pre-wrap">
+              {visit.notes}
             </p>
           </CardContent>
         </Card>
