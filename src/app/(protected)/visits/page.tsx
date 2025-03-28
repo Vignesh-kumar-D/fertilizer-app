@@ -17,33 +17,40 @@ import {
   Plus,
   Trash,
   User,
+  ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ImageCarousel } from '@/components/shared/Imagecarousel';
 import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/shared/loader';
+import Image from 'next/image';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 // Helper function to determine crop health color
-const getCropHealthColor = (health: string) => {
-  switch (health) {
-    case 'good':
-      return 'bg-green-500';
-    case 'average':
-      return 'bg-yellow-500';
-    case 'poor':
-      return 'bg-red-500';
-    default:
-      return 'bg-gray-500';
-  }
-};
+// const getCropHealthColor = (health: string) => {
+//   switch (health) {
+//     case 'good':
+//       return 'bg-green-500';
+//     case 'average':
+//       return 'bg-yellow-500';
+//     case 'poor':
+//       return 'bg-red-500';
+//     default:
+//       return 'bg-gray-500';
+//   }
+// };
 
 export default function VisitList() {
   const router = useRouter();
@@ -114,18 +121,16 @@ export default function VisitList() {
   });
 
   const handleDeleteVisit = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this visit?')) {
-      setDeleteLoading(id);
-      try {
-        await deleteVisit(id);
-        setVisits((prev) => prev.filter((visit) => visit.id !== id));
-        toast.success('Visit deleted successfully');
-      } catch (error) {
-        console.error('Error deleting visit:', error);
-        toast.error('Failed to delete visit');
-      } finally {
-        setDeleteLoading(null);
-      }
+    setDeleteLoading(id);
+    try {
+      await deleteVisit(id);
+      setVisits((prev) => prev.filter((visit) => visit.id !== id));
+      toast.success('Visit deleted successfully');
+    } catch (error) {
+      console.error('Error deleting visit:', error);
+      toast.error('Failed to delete visit');
+    } finally {
+      setDeleteLoading(null);
     }
   };
 
@@ -167,111 +172,148 @@ export default function VisitList() {
           return (
             <Card
               key={visit.id}
-              className="overflow-hidden hover:shadow-md transition-shadow"
+              className="overflow-hidden hover:shadow-md transition-shadow relative group"
             >
-              {/* Image Carousel */}
-              {visit.images && visit.images.length > 0 ? (
-                <ImageCarousel images={visit.images} />
-              ) : (
-                <div className="aspect-video bg-gray-100 flex items-center justify-center">
-                  <p className="text-muted-foreground">No images</p>
-                </div>
-              )}
+              {/* Image Section - 50% of card height */}
+              <div
+                className="relative aspect-[16/9] cursor-pointer"
+                onClick={() => router.push(`/visits/${visit.id}`)}
+              >
+                {visit.images && visit.images.length > 0 ? (
+                  <Image
+                    src={visit.images[0]}
+                    alt={`Visit to ${farmer.name}'s farm`}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <ImageIcon className="h-16 w-16 text-muted-foreground opacity-40" />
+                  </div>
+                )}
 
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-medium flex items-center">
-                      <Leaf className="h-4 w-4 mr-1 text-green-600" />
+                {/* Image count badge */}
+                {visit.images && visit.images.length > 1 && (
+                  <Badge className="absolute bottom-2 right-2 bg-black/60">
+                    <ImageIcon className="h-3 w-3 mr-1" />
+                    {visit.images.length}
+                  </Badge>
+                )}
+
+                {/* Health indicator */}
+                <div className="absolute top-2 right-2">
+                  <Badge
+                    className={cn(
+                      'text-white',
+                      visit.cropHealth === 'good'
+                        ? 'bg-green-500'
+                        : visit.cropHealth === 'average'
+                        ? 'bg-yellow-500'
+                        : 'bg-red-500'
+                    )}
+                  >
+                    {visit.cropHealth.charAt(0).toUpperCase() +
+                      visit.cropHealth.slice(1)}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Edit/Delete buttons - Removed from floating over image */}
+
+              <CardContent
+                className="p-4"
+                onClick={() => router.push(`/visits/${visit.id}`)}
+              >
+                {/* Crop name - Large and bold with action buttons */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center flex-1">
+                    <Leaf className="h-5 w-5 mr-2 text-green-600 flex-shrink-0" />
+                    <h3 className="font-bold text-xl truncate">
                       {visit.crop.name}
-                      <span
-                        className={cn(
-                          'ml-2 h-2 w-2 rounded-full',
-                          getCropHealthColor(visit.cropHealth)
-                        )}
-                      />
                     </h3>
-                    <div className="flex items-center text-sm text-muted-foreground mt-1">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      <FormattedDate date={visit.date} />
-                    </div>
                   </div>
 
-                  <div className="flex space-x-1">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/visits/${visit.id}/edit`);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Edit Visit</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  {/* Edit/Delete buttons beside crop name */}
+                  <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/visits/${visit.id}/edit`);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
 
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteVisit(visit.id);
-                            }}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                        >
+                          {deleteLoading === visit.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete this visit record. This
+                            action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground"
+                            onClick={() => handleDeleteVisit(visit.id)}
                             disabled={deleteLoading === visit.id}
                           >
-                            {deleteLoading === visit.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Delete Visit</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                            {deleteLoading === visit.id
+                              ? 'Deleting...'
+                              : 'Delete'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
 
-                <div className="flex items-center text-sm mt-3">
-                  <User className="h-3 w-3 mr-1" />
-                  <span className="font-medium mr-1">Farmer:</span>
-                  <span>{farmer.name}</span>
+                {/* Farmer info */}
+                <div className="flex items-center text-sm mb-2">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                  <span className="font-medium truncate">{farmer.name}</span>
                 </div>
 
-                <div className="flex items-center text-sm mt-1">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  <span>{farmer.location}</span>
+                <div className="flex items-center text-sm mb-2">
+                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate">{farmer.location}</span>
                 </div>
 
-                <div className="mt-3">
+                <div className="flex items-center text-sm mb-3">
+                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                  <FormattedDate date={visit.date} />
+                </div>
+
+                <div className="mt-3 mb-2">
+                  <div className="text-sm font-medium mb-1">Notes:</div>
                   <p className="text-sm line-clamp-2 text-muted-foreground">
                     {visit.notes}
                   </p>
                 </div>
 
+                {/* View Details Button */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-3 w-full justify-between"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/visits/${visit.id}`);
-                  }}
+                  className="mt-2 w-full justify-between"
                 >
                   View Details
                   <ChevronRight className="h-4 w-4" />

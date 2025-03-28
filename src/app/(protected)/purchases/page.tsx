@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Plus,
-  IndianRupee,
   Leaf,
   Loader2,
   Star,
   Edit,
   Trash,
-  Image as ImageIcon,
+  ImageIcon,
+  Calendar,
+  ChevronRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -20,12 +21,8 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import FormattedDate from '@/lib/FormattedDate';
 import { Purchase, Farmer } from '@/types';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +34,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
+import { PageLoader } from '@/components/shared/loader';
+import Image from 'next/image';
 
 export default function PurchasesPage() {
   const router = useRouter();
@@ -144,13 +144,18 @@ export default function PurchasesPage() {
     }
   };
 
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   if (loading) {
-    return (
-      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[300px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading purchases...</p>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
@@ -181,7 +186,7 @@ export default function PurchasesPage() {
         <Checkbox
           id="working-combos"
           checked={showWorkingCombosOnly}
-          onCheckedChange={(checked: boolean) =>
+          onCheckedChange={(checked) =>
             setShowWorkingCombosOnly(checked === true)
           }
         />
@@ -199,195 +204,251 @@ export default function PurchasesPage() {
           const farmer = getFarmerById(purchase.farmerId);
           if (!farmer) return null;
 
+          // Parse items to display as tags
+          const itemsList = purchase.items
+            .split(',')
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0);
+
           return (
             <Card
               key={purchase.id}
-              className="hover:border-primary/50 transition-colors relative group"
+              className="overflow-hidden hover:shadow-md transition-shadow relative group"
             >
-              <CardContent className="p-4">
-                <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/purchases/${purchase.id}/edit`);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Edit Purchase</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+              {/* Image Section - Larger */}
+              <div
+                className="relative aspect-[16/9] cursor-pointer"
+                onClick={() => router.push(`/purchases/${purchase.id}`)}
+              >
+                {purchase.images && purchase.images.length > 0 ? (
+                  <Image
+                    src={purchase.images[0]}
+                    alt={`Purchase from ${farmer.name}`}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-muted flex flex-col items-center justify-center">
+                    <ImageIcon className="h-16 w-16 text-muted-foreground opacity-40" />
+                    <div className="mt-2 px-4 py-1 rounded-full bg-muted-foreground/20">
+                      <Star className="h-4 w-4 inline mr-1 text-yellow-500" />
+                      <span className="text-sm font-medium">
+                        {purchase.isWorkingCombo
+                          ? 'Working Combo'
+                          : 'No Images'}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
+                {/* Image count badge */}
+                {purchase.images && purchase.images.length > 1 && (
+                  <Badge className="absolute bottom-2 right-2 bg-black/60">
+                    <ImageIcon className="h-3 w-3 mr-1" />
+                    {purchase.images.length}
+                  </Badge>
+                )}
+
+                {/* Working combo star */}
+                {purchase.isWorkingCombo && (
+                  <div className="absolute top-2 left-2">
+                    <Badge className="bg-yellow-500 text-white">
+                      <Star className="h-3 w-3 mr-1" />
+                      Working Combo
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Payment status badge - Larger and more prominent */}
+                <div className="absolute top-3 right-3 z-10">
+                  <Badge
+                    className={cn(
+                      'text-base px-3 py-1.5 font-medium shadow-sm',
+                      purchase.remainingAmount <= 0
+                        ? 'bg-green-500 text-white'
+                        : purchase.amountPaid > 0
+                        ? 'bg-yellow-500 text-white'
+                        : 'bg-red-500 text-white'
+                    )}
+                  >
+                    {purchase.remainingAmount <= 0
+                      ? 'PAID'
+                      : 'DUE: ' + formatCurrency(purchase.remainingAmount)}
+                  </Badge>
+                </div>
+              </div>
+
+              <CardContent
+                className="p-4 pt-3"
+                onClick={() => router.push(`/purchases/${purchase.id}`)}
+              >
+                {/* Items list - Prominent */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-bold text-lg truncate flex-1">
+                      {farmer.name}
+                    </div>
+
+                    {/* Edit/Delete buttons - Beside farmer name */}
+                    <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/purchases/${purchase.id}/edit`);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                          >
+                            {deleteLoading === purchase.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete this purchase record.
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground"
+                              onClick={() => handleDeletePurchase(purchase.id)}
+                              disabled={deleteLoading === purchase.id}
                             >
-                              {deleteLoading === purchase.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete this purchase
-                                record. This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground"
-                                onClick={() =>
-                                  handleDeletePurchase(purchase.id)
-                                }
-                                disabled={deleteLoading === purchase.id}
-                              >
-                                {deleteLoading === purchase.id
-                                  ? 'Deleting...'
-                                  : 'Delete'}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Delete Purchase</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                              {deleteLoading === purchase.id
+                                ? 'Deleting...'
+                                : 'Delete'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {itemsList.slice(0, 3).map((item, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="text-sm py-1"
+                      >
+                        {item}
+                      </Badge>
+                    ))}
+                    {itemsList.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{itemsList.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
-                <div
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/purchases/${purchase.id}`)}
-                >
-                  <div className="flex justify-between items-start">
+                {/* Crop and date */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div className="flex items-center text-sm">
+                    <Leaf className="h-4 w-4 mr-1 text-green-600 flex-shrink-0" />
+                    <span className="text-green-700 font-medium truncate">
+                      {purchase.crop.name}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center text-sm justify-end">
+                    <Calendar className="h-4 w-4 mr-1 text-muted-foreground flex-shrink-0" />
+                    <FormattedDate date={purchase.date} />
+                  </div>
+                </div>
+
+                {/* Financial details - Highlighted */}
+                <div className="mt-3 bg-muted/50 rounded-lg p-3 mb-2">
+                  <div className="flex justify-between items-center">
                     <div>
-                      <div className="font-medium flex items-center">
-                        {farmer.name}
-                        {purchase.isWorkingCombo && (
-                          <Star className="h-4 w-4 ml-1 text-yellow-500" />
+                      <div className="text-xs text-muted-foreground">Total</div>
+                      <div className="font-bold text-lg">
+                        {formatCurrency(purchase.totalAmount)}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground">Due</div>
+                      <div
+                        className={cn(
+                          'font-bold text-lg',
+                          purchase.remainingAmount > 0
+                            ? 'text-red-600'
+                            : 'text-green-600'
+                        )}
+                      >
+                        {formatCurrency(
+                          purchase.remainingAmount > 0
+                            ? purchase.remainingAmount
+                            : 0
                         )}
                       </div>
-                      <div className="text-muted-foreground text-sm">
-                        {farmer.location}
-                      </div>
-                      <div className="flex items-center gap-1 mt-1 text-sm">
-                        <Leaf className="h-3 w-3 text-green-600" />
-                        <span className="text-green-700">
-                          {purchase.crop.name}
-                        </span>
-                      </div>
-                      <div className="text-sm mt-1">
-                        <FormattedDate date={purchase.date} />
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="text-lg font-semibold flex items-center">
-                        <IndianRupee className="h-4 w-4" />
-                        {purchase.totalAmount}
-                      </div>
-                      <div
-                        className={`px-2 py-1 rounded-full text-sm ${
-                          purchase.remainingAmount <= 0
-                            ? 'bg-green-100 text-green-800'
-                            : purchase.amountPaid > 0
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {purchase.remainingAmount > 0 ? 'Partial' : 'Paid'}
-                      </div>
                     </div>
                   </div>
 
-                  {purchase.images && purchase.images.length > 0 && (
-                    <div className="mt-2 flex items-center text-sm text-muted-foreground">
-                      <ImageIcon className="h-3 w-3 mr-1" />
-                      {purchase.images.length} photo
-                      {purchase.images.length !== 1 && 's'}
-                    </div>
-                  )}
-
-                  <div className="mt-2">
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
-                        {purchase.items.split(',')[0]?.trim()}
-                      </span>
-
-                      {purchase.items.split(',').length > 1 && (
-                        <span className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
-                          +{purchase.items.split(',').length - 1} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex justify-between text-sm mt-2">
                     <div>
                       <span className="text-muted-foreground">Paid:</span>
-                      <span className="ml-2 font-medium text-green-600">
-                        ₹{purchase.amountPaid}
+                      <span className="ml-1 font-medium text-green-600">
+                        {formatCurrency(purchase.amountPaid)}
                       </span>
                     </div>
+
                     <div>
-                      <span className="text-muted-foreground">Due:</span>
-                      <span className="ml-2 font-medium text-red-600">
-                        ₹
-                        {purchase.remainingAmount > 0
-                          ? purchase.remainingAmount
-                          : 0}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        Qty (in litres):
-                      </span>
-                      <span className="ml-2 font-medium">
-                        {purchase.quantity}
+                      <span className="text-muted-foreground">Qty:</span>
+                      <span className="ml-1 font-medium">
+                        {purchase.quantity}L
                       </span>
                     </div>
                   </div>
                 </div>
+
+                {/* View Details Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between mt-1"
+                >
+                  View Details
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </CardContent>
             </Card>
           );
         })}
-      </div>
-      {filteredPurchases.length === 0 && (
-        <div className="flex w-full mx-auto flex-col align-center">
+
+        {filteredPurchases.length === 0 && (
           <div className="text-center py-8 text-muted-foreground col-span-full">
             {showWorkingCombosOnly
               ? 'No working combo purchases found'
               : 'No purchases found'}
+            <Button
+              className="mt-4"
+              onClick={() => router.push('/purchases/new')}
+            >
+              Add New Purchase
+            </Button>
           </div>
-          <Button
-            className="mt-4"
-            onClick={() => router.push('/purchases/new')}
-          >
-            Add New Purchase
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
