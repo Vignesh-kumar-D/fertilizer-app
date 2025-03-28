@@ -216,10 +216,7 @@ export default function PurchasesPage() {
               className="overflow-hidden hover:shadow-md transition-shadow relative group"
             >
               {/* Image Section - Larger */}
-              <div
-                className="relative aspect-[16/9] cursor-pointer"
-                onClick={() => router.push(`/purchases/${purchase.id}`)}
-              >
+              <div className="relative aspect-[16/9] cursor-pointer">
                 {purchase.images && purchase.images.length > 0 ? (
                   <Image
                     src={purchase.images[0]}
@@ -278,10 +275,7 @@ export default function PurchasesPage() {
                 </div>
               </div>
 
-              <CardContent
-                className="p-4 pt-3"
-                onClick={() => router.push(`/purchases/${purchase.id}`)}
-              >
+              <CardContent className="p-4 pt-3">
                 {/* Items list - Prominent */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
@@ -426,6 +420,7 @@ export default function PurchasesPage() {
                   variant="ghost"
                   size="sm"
                   className="w-full justify-between mt-1"
+                  onClick={() => router.push(`/purchases/${purchase.id}`)}
                 >
                   View Details
                   <ChevronRight className="h-4 w-4" />
