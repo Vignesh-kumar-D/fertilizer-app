@@ -322,7 +322,9 @@ export default function VisitForm({
         setIsSubmitting(false);
         return;
       }
-
+      const updatedImageUrls = values.images.filter(
+        (img) => !imagesToUpload.some((file) => img.includes(file.name))
+      );
       // Handle Edit mode
       if (isEdit && visitId) {
         // Update the visit details
@@ -337,9 +339,6 @@ export default function VisitForm({
         });
 
         // Handle image updates if any
-        const updatedImageUrls = values.images.filter(
-          (img) => !imagesToUpload.some((file) => img.includes(file.name))
-        );
 
         // // Upload new images if any
         // if (imagesToUpload.length > 0) {
@@ -372,7 +371,7 @@ export default function VisitForm({
         employeeId: currentUser?.id ?? '',
         notes: values.notes,
         recommendations: values.recommendations,
-        images: [], // Initially empty
+        images: updatedImageUrls, // Initially empty
       });
 
       // If we have images to upload
