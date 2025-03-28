@@ -175,10 +175,7 @@ export default function VisitList() {
               className="overflow-hidden hover:shadow-md transition-shadow relative group"
             >
               {/* Image Section - 50% of card height */}
-              <div
-                className="relative aspect-[16/9] cursor-pointer"
-                onClick={() => router.push(`/visits/${visit.id}`)}
-              >
+              <div className="relative aspect-[16/9] cursor-pointer">
                 {visit.images && visit.images.length > 0 ? (
                   <Image
                     src={visit.images[0]}
@@ -220,10 +217,7 @@ export default function VisitList() {
 
               {/* Edit/Delete buttons - Removed from floating over image */}
 
-              <CardContent
-                className="p-4"
-                onClick={() => router.push(`/visits/${visit.id}`)}
-              >
+              <CardContent className="p-4">
                 {/* Crop name - Large and bold with action buttons */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center flex-1">
@@ -314,6 +308,7 @@ export default function VisitList() {
                   variant="ghost"
                   size="sm"
                   className="mt-2 w-full justify-between"
+                  onClick={() => router.push(`/visits/${visit.id}`)}
                 >
                   View Details
                   <ChevronRight className="h-4 w-4" />
