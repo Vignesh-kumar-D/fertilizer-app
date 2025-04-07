@@ -29,24 +29,24 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   Loader2,
-  Trash2,
+  // Trash2,
   Image as ImageIcon,
   X,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Crop, Farmer, Purchase } from '@/types';
 import { useFirebase } from '@/lib/firebase/firebase-context';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+// import {
+//   AlertDialog,
+//   AlertDialogAction,
+//   AlertDialogCancel,
+//   AlertDialogContent,
+//   AlertDialogDescription,
+//   AlertDialogFooter,
+//   AlertDialogHeader,
+//   AlertDialogTitle,
+//   AlertDialogTrigger,
+// } from '@/components/ui/alert-dialog';
 import Image from 'next/image';
 import { compressImage } from '@/lib/utils';
 import { FullScreenImageViewer } from '@/components/shared/FullScreenImageViewer';
@@ -84,7 +84,7 @@ export default function PurchaseForm({
     createPurchase,
     updatePurchase,
     getPurchaseById,
-    deletePurchase,
+    // deletePurchase,
   } = useFirebase();
 
   const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
@@ -315,21 +315,21 @@ export default function PurchaseForm({
     setViewerOpen(true);
   };
 
-  const handleDeletePurchase = async () => {
-    if (!purchaseId) return;
+  // const handleDeletePurchase = async () => {
+  //   if (!purchaseId) return;
 
-    try {
-      setSubmitting(true);
-      await deletePurchase(purchaseId);
-      toast.success('Purchase deleted successfully');
-      router.push('/purchases');
-    } catch (error) {
-      console.error('Error deleting purchase:', error);
-      toast.error('Failed to delete purchase');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  //   try {
+  //     setSubmitting(true);
+  //     await deletePurchase(purchaseId);
+  //     toast.success('Purchase deleted successfully');
+  //     router.push('/purchases');
+  //   } catch (error) {
+  //     console.error('Error deleting purchase:', error);
+  //     toast.error('Failed to delete purchase');
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -392,7 +392,7 @@ export default function PurchaseForm({
       }
 
       // Create new purchase
-      await createPurchase({
+      const newPurchaseId = await createPurchase({
         farmerId: values.farmerId,
         crop: selectedCrop,
         date: values.date,
@@ -407,24 +407,24 @@ export default function PurchaseForm({
       });
 
       // If we have images to upload
-      // if (imagesToUpload.length > 0) {
-      //   try {
-      //     const imageUrls = await uploadPurchaseImages(
-      //       imagesToUpload,
-      //       purchaseId
-      //     );
+      if (imagesToUpload.length > 0) {
+        try {
+          const imageUrls = await uploadPurchaseImages(
+            imagesToUpload,
+            newPurchaseId
+          );
 
-      //     // Update the purchase with image URLs
-      //     await updatePurchase(purchaseId, { images: imageUrls });
+          // Update the purchase with image URLs
+          await updatePurchase(newPurchaseId, { images: imageUrls });
 
-      //     toast.success('Purchase and images added successfully');
-      //   } catch (imgError) {
-      //     console.error('Error uploading images:', imgError);
-      //     toast.error('Purchase created but images could not be uploaded');
-      //   }
-      // } else {
-      toast.success('Purchase added successfully');
-      // }
+          toast.success('Purchase and images added successfully');
+        } catch (imgError) {
+          console.error('Error uploading images:', imgError);
+          toast.error('Purchase created but images could not be uploaded');
+        }
+      } else {
+        toast.success('Purchase added successfully');
+      }
 
       router.push('/purchases');
     } catch (error) {
@@ -456,7 +456,7 @@ export default function PurchaseForm({
           </h1>
         </div>
 
-        {isEdit && purchaseId && (
+        {/* {isEdit && purchaseId && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
@@ -491,7 +491,7 @@ export default function PurchaseForm({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        )}
+        )} */}
       </div>
 
       <Form {...form}>
@@ -593,10 +593,15 @@ export default function PurchaseForm({
                     <FormLabel>Quantity (in litres)</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         {...field}
                         onChange={(e) => {
-                          field.onChange(parseFloat(e.target.value));
+                          const stringValue = e.target.value;
+                          const paid = parseFloat(stringValue);
+                          const currentPaid = isNaN(paid) ? 0 : paid;
+
+                          field.onChange(currentPaid);
                         }}
                         disabled={submitting}
                       />
@@ -664,15 +669,32 @@ export default function PurchaseForm({
                       <FormLabel>Total Amount</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
+                          // Change type to text, add inputMode
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Enter total amount" // Optional: Add placeholder
                           {...field}
+                          // Modify onChange
                           onChange={(e) => {
-                            const total = parseFloat(e.target.value);
-                            field.onChange(total);
-                            const paid = form.getValues('amountPaid');
-                            form.setValue('remainingAmount', total - paid);
+                            const stringValue = e.target.value;
+                            // Allow empty input, parse potentially non-numeric input
+                            const total = parseFloat(stringValue);
+                            // If parsing fails (NaN) or input is empty, treat as 0 for form state
+                            const currentTotal = isNaN(total) ? 0 : total;
+
+                            field.onChange(currentTotal); // Update react-hook-form state
+
+                            // Recalculate remaining amount based on the new total
+                            const currentPaid = form.getValues('amountPaid');
+                            form.setValue(
+                              'remainingAmount',
+                              Math.max(0, currentTotal - currentPaid) // Ensure remaining isn't negative
+                            );
                           }}
-                          disabled={submitting}
+                          // Disable if editing OR submitting
+                          disabled={isEdit || submitting}
+                          // Use field.value which RHF manages (should be number)
+                          // RHF handles converting number state back to string for text input
                         />
                       </FormControl>
                       <FormMessage />
@@ -688,15 +710,28 @@ export default function PurchaseForm({
                       <FormLabel>Amount Paid</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
+                          // Change type to text, add inputMode
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Enter amount paid" // Optional: Add placeholder
                           {...field}
+                          // Modify onChange
                           onChange={(e) => {
-                            const paid = parseFloat(e.target.value);
-                            field.onChange(paid);
-                            const total = form.getValues('totalAmount');
-                            form.setValue('remainingAmount', total - paid);
+                            const stringValue = e.target.value;
+                            const paid = parseFloat(stringValue);
+                            const currentPaid = isNaN(paid) ? 0 : paid;
+
+                            field.onChange(currentPaid); // Update react-hook-form state
+
+                            // Recalculate remaining amount based on the new paid amount
+                            const currentTotal = form.getValues('totalAmount');
+                            form.setValue(
+                              'remainingAmount',
+                              Math.max(0, currentTotal - currentPaid) // Ensure remaining isn't negative
+                            );
                           }}
-                          disabled={submitting}
+                          // Disable if editing OR submitting
+                          disabled={isEdit || submitting}
                         />
                       </FormControl>
                       <FormMessage />
