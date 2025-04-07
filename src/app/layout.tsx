@@ -7,6 +7,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { MockDataProvider } from '@/lib/mock-data-context';
 import { FirebaseProvider } from '@/lib/firebase/firebase-context';
+import { BottomNavigation } from '@/components/shared/BottonNavigation';
 
 const APP_NAME = 'Sree Vetri Agro services';
 const APP_DEFAULT_TITLE = 'Sree Vetri Agro services';
@@ -109,6 +110,7 @@ export default function RootLayout({
           <FirebaseProvider>
             <Header />
             <main>{children}</main>
+            <BottomNavigation />
           </FirebaseProvider>
         </MockDataProvider>
         <Toaster />

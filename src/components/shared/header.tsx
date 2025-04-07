@@ -4,40 +4,50 @@
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+// Removed useState as Sheet is removed
+// Removed Sheet, SheetContent, SheetTrigger
 import {
   LayoutDashboard,
   Users,
-  Store,
-  CalendarDays,
-  Menu,
+  Store, // Note: You might want ShoppingCart from lucide-react if that's what you used in BottomNav
+  CalendarDays, // Note: You might want ClipboardList from lucide-react if that's what you used in BottomNav
+  // Menu icon is removed
   User,
 } from 'lucide-react';
-import { useFirebase } from '@/lib/firebase/firebase-context';
-import { ButtonLoader } from './loader';
+import { useFirebase } from '@/lib/firebase/firebase-context'; // Assuming path is correct
+import { ButtonLoader } from './loader'; // Assuming path is correct
 import Image from 'next/image';
-// Base navigation items that all authenticated users can see
+
+// --- Navigation Definitions ---
+// (Consider defining these in a separate config file if used elsewhere, e.g., BottomNav)
+
+// Base navigation items
 const baseNavigation = [
   {
     name: 'Farmers',
     href: '/farmers',
-    icon: Users,
+    icon: Users, // Icon for Farmers
     pattern: /^\/farmers/,
   },
   {
     name: 'Purchases',
     href: '/purchases',
-    icon: Store,
+    icon: Store, // Icon for Purchases (Consider IndianRupee or ShoppingCart maybe?)
     pattern: /^\/purchases/,
   },
   {
     name: 'Visits',
     href: '/visits',
-    icon: CalendarDays,
+    icon: CalendarDays, // Icon for Visits (Consider ClipboardList?)
     pattern: /^\/visits/,
   },
+  // You might want to add Combos here for desktop consistency?
+  // {
+  //   name: 'Combos',
+  //   href: '/combos',
+  //   icon: Star, // Or Sparkles
+  //   pattern: /^\/combos/,
+  // },
 ];
 
 // Admin-only navigation item
@@ -48,9 +58,10 @@ const adminNavItem = {
   pattern: /^\/dashboard/,
 };
 
+// --- Header Component ---
 export function Header() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
+  // Removed isOpen state for Sheet
   const { currentUser, isAdmin, loading } = useFirebase();
 
   // Generate navigation based on user role
@@ -58,65 +69,68 @@ export function Header() {
     ? [adminNavItem, ...baseNavigation]
     : [...baseNavigation];
 
-  // Handle sign out
-
   // If still loading auth state or not authenticated, don't render header
   if (loading) {
     return (
-      <div className="flex w-full justify-center">
-        <ButtonLoader size={24} />
-      </div>
+      <header className="sticky top-0 z-50 w-full border-b bg-white">
+        <div className="container flex h-16 items-center justify-center px-4 sm:px-8">
+          <ButtonLoader size={24} />
+        </div>
+      </header>
     );
   }
 
+  // Don't render anything if not logged in (as per original logic)
   if (!currentUser) {
     return null;
   }
 
+  // Render Desktop Header
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {' '}
+      {/* Updated background style */}
       <div className="container flex h-16 items-center px-4 sm:px-8 justify-between">
-        <div className="flex items-center space-x-2 ">
-          {/* Logo/Icon */}
-          <Image
-            src={'/images/icon_maskable_512x512.png'}
-            alt={`Logo image`}
-            width={40}
-            height={40}
-            className="object-contain rounded-full"
-          />
-          {/* App Name */}
+        {/* Left Section: Logo & App Name */}
+        <div className="flex items-center space-x-2 mr-6">
+          {' '}
+          {/* Added margin */}
           <Link href="/" className="flex items-center space-x-2">
+            <Image
+              src={'/images/icon_maskable_512x512.png'} // Ensure this path is correct in public folder
+              alt={`Sree Vetri Agro Services Logo`}
+              width={36} // Slightly smaller logo?
+              height={36}
+              className="object-contain rounded-md" // Changed to rounded-md?
+            />
+            {/* App Name - simplified for better responsiveness view */}
             <span
-              className={cn(
-                'hidden md:inline-block text-xl font-bold text-primary',
-                'tracking-tight'
-              )}
+              className={cn('font-bold text-primary tracking-tight text-lg')}
             >
-              SREE VETRI AGRO SERVICES
-            </span>
-            <span
-              className={cn(
-                'md:hidden text-lg font-bold text-primary',
-                'tracking-tight'
-              )}
-            >
-              SREE VETRI AGRO SERVICES
+              {' '}
+              {/* Single text size */}
+              SREE VETRI AGRO
             </span>
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
+        {/* Middle Section: Desktop Navigation (Visible md and up) */}
+        <nav className="hidden md:flex flex-1 items-center justify-center space-x-6">
+          {' '}
+          {/* Centered navigation */}
           {navigation.map((item) => {
-            const isActive = item.pattern.test(pathname);
+            // More robust active check: handles '/farmers' and '/farmers/[id]'
+            const isActive =
+              pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link
-                key={item.href}
+                key={item.name} // Use name as key if href might not be unique across sections in future
                 href={item.href}
                 className={cn(
-                  'flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary',
-                  isActive ? 'text-primary' : 'text-muted-foreground'
+                  'flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md', // Added padding/rounding
+                  isActive
+                    ? 'text-primary bg-primary/10'
+                    : 'text-muted-foreground hover:bg-accent/50' // Added background on active/hover
                 )}
               >
                 <item.icon className="h-4 w-4" />
@@ -126,64 +140,28 @@ export function Header() {
           })}
         </nav>
 
-        <div className="flex items-center space-x-4">
-          {/* User Profile Button */}
+        {/* Right Section: Desktop Profile (Visible md and up) */}
+        <div className="hidden md:flex items-center space-x-4 ml-6">
+          {' '}
+          {/* Added margin */}
           <Link
             key={'profile'}
             href={'/profile'}
-            className="hidden md:flex items-center space-x-2"
+            className={cn(
+              'flex items-center gap-2 text-sm font-medium transition-colors text-muted-foreground hover:text-primary',
+              pathname.startsWith('/profile') ? 'text-primary' : '' // Active check for profile
+            )}
           >
             <User className="h-5 w-5" />
-            <span className="text-sm">{currentUser.name}</span>
+            {/* Optionally hide name if too long, show on hover? */}
+            <span className="truncate max-w-[100px]">
+              {currentUser.name || 'Profile'}
+            </span>
           </Link>
-
-          {/* Mobile Menu */}
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64">
-              <div className="flex flex-col space-y-4 py-4">
-                {navigation.map((item) => {
-                  const isActive = item.pattern.test(pathname);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={cn(
-                        'flex items-center space-x-3 px-3 py-2 rounded-md transition-colors',
-                        isActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'hover:bg-primary/5 text-muted-foreground'
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-medium">{item.name}</span>
-                    </Link>
-                  );
-                })}
-
-                {/* Mobile Profile Link */}
-                <Link
-                  href="/profile"
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    'flex items-center space-x-3 px-3 py-2 rounded-md transition-colors',
-                    pathname === '/profile'
-                      ? 'bg-primary/10 text-primary'
-                      : 'hover:bg-primary/5 text-muted-foreground'
-                  )}
-                >
-                  <User className="h-5 w-5" />
-                  <span className="font-medium">Profile</span>
-                </Link>
-              </div>
-            </SheetContent>
-          </Sheet>
+          {/* You might add a Sign Out button here */}
         </div>
+
+        {/* Mobile Menu Trigger and Sheet Content are REMOVED */}
       </div>
     </header>
   );
