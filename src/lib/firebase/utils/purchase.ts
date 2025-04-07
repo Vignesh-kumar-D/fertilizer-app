@@ -190,22 +190,43 @@ export const uploadPurchaseImages = async (
   files: File[],
   purchaseId: string
 ): Promise<string[]> => {
-  const imageUrls: string[] = [];
-
-  files.forEach(async (file, index) => {
+  // Create an array of upload promises
+  const uploadPromises = files.map(async (file, index) => {
     const fileExtension = file.name.split('.').pop();
+    // Consider adding a timestamp or UUID for more unique filenames if needed
     const fileName = `image_${index}.${fileExtension}`;
-    const storageRef = ref(storage, `purchases/${purchaseId}/${fileName}`);
+    const storagePath = `purchases/${purchaseId}/${fileName}`;
+    const storageRef = ref(storage, storagePath);
+
+    console.log(`Attempting to upload ${file.name} to ${storagePath}`); // Added log
 
     try {
       const snapshot = await uploadBytes(storageRef, file);
+      console.log(`Uploaded ${file.name}, getting download URL...`); // Added log
       const downloadUrl = await getDownloadURL(snapshot.ref);
-      imageUrls.push(downloadUrl);
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      throw error;
+      console.log(`Got download URL for ${file.name}: ${downloadUrl}`); // Added log
+      return downloadUrl; // Return the URL from the async map callback
+    } catch {
+      // Catch specific errors if needed
+      console.error(`Error uploading image ${file.name}`);
+      // Decide how to handle individual file upload errors.
+      // Option 1: Throw the error, failing the whole batch (Promise.all rejects)
+      throw new Error(`Failed to upload ${file.name}`);
+      // Option 2: Return null or a specific marker for failed uploads
+      // return null;
     }
   });
 
-  return imageUrls;
+  // Wait for all upload promises to settle (either resolve with URL or reject with error)
+  try {
+    const imageUrls = await Promise.all(uploadPromises);
+    console.log('All uploads finished. URLs:', imageUrls);
+    // If using Option 2 above, you might want to filter out nulls:
+    // return imageUrls.filter(url => url !== null) as string[];
+    return imageUrls;
+  } catch (error) {
+    console.error('One or more image uploads failed:', error);
+    // Re-throw the error if you want the calling function (onSubmit) to catch it
+    throw error;
+  }
 };
