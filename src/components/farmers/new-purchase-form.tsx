@@ -111,7 +111,7 @@ export default function PurchaseForm({
       items: '',
       farmerId: queryFarmerId,
       cropId: '',
-      quantity: 1,
+      quantity: 0,
       totalAmount: 0,
       amountPaid: 0,
       remainingAmount: 0,
