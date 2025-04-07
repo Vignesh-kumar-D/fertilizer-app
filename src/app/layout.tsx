@@ -109,7 +109,9 @@ export default function RootLayout({
         <MockDataProvider>
           <FirebaseProvider>
             <Header />
-            <main>{children}</main>
+            <main className="flex-grow w-full pb-[68px] md:pb-0">
+              {children}
+            </main>
             <BottomNavigation />
           </FirebaseProvider>
         </MockDataProvider>
