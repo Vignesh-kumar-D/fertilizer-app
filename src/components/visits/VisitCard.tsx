@@ -176,10 +176,6 @@ export const VisitCard: React.FC<VisitCardProps> = ({
         {/* Farmer Info */}
         <div
           className="flex items-center text-sm mb-2 cursor-pointer hover:text-primary transition-colors" // Added hover
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(`/farmers/${farmer.id}`);
-          }}
         >
           <User className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
           <span className="font-medium truncate">{farmer.name}</span>

@@ -144,13 +144,7 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
       <CardContent className="p-4 pt-3 flex flex-col flex-grow">
         {/* Farmer Name and Actions */}
         <div className="flex items-center justify-between mb-2">
-          <div
-            className="font-bold text-lg truncate flex-1 cursor-pointer hover:text-primary transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/farmers/${farmer.id}`);
-            }}
-          >
+          <div className="font-bold text-lg truncate flex-1 cursor-pointer hover:text-primary transition-colors">
             {farmer.name}
           </div>
           {/* Edit Button */}

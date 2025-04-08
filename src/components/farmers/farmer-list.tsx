@@ -208,10 +208,7 @@ export function FarmerList() {
                 {/* Farmer Info Header (Name, Phone, Location, Image, Actions) */}
                 <div className="flex justify-between items-start mb-4">
                   {/* Left side details */}
-                  <div
-                    className="flex-1 mr-4 space-y-1 cursor-pointer"
-                    onClick={() => router.push(`/farmers/${farmer.id}`)}
-                  >
+                  <div className="flex-1 mr-4 space-y-1 cursor-pointer">
                     <h3 className="font-semibold text-lg group-hover:text-primary transition-colors line-clamp-1">
                       {farmer.displayName || farmer.name}
                     </h3>
@@ -238,8 +235,8 @@ export function FarmerList() {
                       <Image
                         src={farmer.image}
                         alt={farmer.name}
-                        width={40}
-                        height={40}
+                        width={500}
+                        height={500}
                         className="object-cover rounded-full h-10 w-10 border"
                       />
                     ) : (
@@ -330,7 +327,7 @@ export function FarmerList() {
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(
-                              `/farmers/${farmer.id}/crops/${crop.id}/activities`
+                              `/farmers/${farmer.id}/crop/${crop.id}`
                             ); // Navigate to crop activities
                           }}
                         >
