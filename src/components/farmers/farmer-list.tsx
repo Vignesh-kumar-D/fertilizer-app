@@ -307,39 +307,53 @@ export function FarmerList() {
                 </div>
                 {/* === THIS IS THE UPDATED CROPS SECTION === */}
                 <div className="border-t pt-3 mb-4">
+                  {' '}
+                  {/* Section separator */}
                   <div className="flex items-center text-sm font-medium mb-2">
-                    <Leaf className="h-4 w-4 mr-1 text-green-600" /> Crops
-                  </div>
-                  {/* Container for scrolling badges */}
-                  <div className="flex gap-2 overflow-x-auto pb-2 -mb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                     {' '}
-                    {/* Horizontal scroll */}
+                    {/* Label */}
+                    <Leaf className="h-4 w-4 mr-1 text-green-600" />
+                    Crops
+                  </div>
+                  {/* Container allowing wrap, with max-height (~3 lines) and vertical scroll */}
+                  <div
+                    className={cn(
+                      'flex flex-wrap gap-2 overflow-y-auto pr-2 pb-1', // Allow wrapping, vertical scroll, padding for scrollbar/gap
+                      'max-h-24', // Set max height (6rem / 96px). Adjust as needed based on badge height & gap.
+                      'scrollbar-thin scrollbar-thumb-muted/50 scrollbar-track-transparent' // Scrollbar styling
+                    )}
+                  >
                     {farmer.crops && farmer.crops.length > 0 ? (
-                      farmer.crops.map((crop: Crop) => (
-                        <Badge
-                          key={crop.id}
-                          variant="secondary" // Use secondary for background
-                          className={cn(
-                            'cursor-pointer hover:opacity-80 transition-opacity',
-                            'text-sm font-semibold text-foreground', // MODIFIED: Larger, Bold, Default Text Color
-                            'whitespace-nowrap px-3 py-1' // Prevent wrapping inside badge, adjust padding
-                          )}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(
-                              `/farmers/${farmer.id}/crop/${crop.id}`
-                            ); // Navigate to crop activities
-                          }}
-                        >
-                          {crop.displayName ||
-                            crop.name.charAt(0).toUpperCase() +
-                              crop.name.slice(1)}
-                        </Badge>
-                      ))
+                      farmer.crops.map(
+                        (
+                          crop: Crop // Map ALL crops
+                        ) => (
+                          <Badge
+                            key={crop.id}
+                            variant="secondary" // Use secondary for background
+                            className={cn(
+                              'cursor-pointer hover:opacity-80 transition-opacity', // Click style
+                              'text-sm font-semibold text-foreground', // Style: Bold, larger, default color
+                              'whitespace-nowrap px-3 py-1' // Keep badge text on one line, padding
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Ensure this is the correct path structure for your app
+                              router.push(
+                                `/farmers/${farmer.id}/crop/${crop.id}`
+                              );
+                            }}
+                          >
+                            {crop.displayName ||
+                              crop.name.charAt(0).toUpperCase() +
+                                crop.name.slice(1)}
+                          </Badge>
+                        )
+                      )
                     ) : (
+                      // Empty state
                       <span className="text-sm text-muted-foreground italic">
-                        {' '}
-                        No crops associated{' '}
+                        No crops associated
                       </span>
                     )}
                   </div>
