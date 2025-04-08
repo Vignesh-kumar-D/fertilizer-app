@@ -180,12 +180,12 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
               // Map over ALL items
               itemsList.map((item, index) => (
                 // Display each item as a paragraph
-                <p
+                <span
                   key={index}
                   className="text-sm font-semibold text-foreground mb-1 break-words last:mb-0" // Style: Bold, black, spacing, word break
                 >
                   {item}
-                </p>
+                </span>
               ))
             ) : (
               // Empty state
