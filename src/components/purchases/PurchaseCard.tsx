@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+// --- Keep AlertDialog imports commented out ---
 // import {
 //   AlertDialog,
 //   AlertDialogAction,
@@ -20,17 +21,18 @@ import {
   Leaf,
   Star,
   Edit,
-  //   Trash,
+  // Trash, // <-- Keep commented
   ImageIcon,
   Calendar,
   ChevronRight,
-  //   Loader2,
+  // Loader2, // <-- Keep commented
+  Expand, // <-- Keep: Used for image hover effect
 } from 'lucide-react';
 import FormattedDate from '@/lib/FormattedDate'; // Assuming this component exists
 import { Purchase, Farmer } from '@/types'; // Import your types
 import { cn } from '@/lib/utils';
 
-// Helper function (can be kept here or imported if used elsewhere)
+// Helper function
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -43,54 +45,68 @@ const formatCurrency = (amount: number): string => {
 interface PurchaseCardProps {
   purchase: Purchase;
   farmer: Farmer;
-  onDelete: (id: string) => Promise<void> | void; // Function to handle delete action
-  deleteLoading: boolean; // Is this specific card's delete action loading?
+  // --- Keep delete props commented out ---
+  // onDelete: (id: string) => Promise<void> | void;
+  // deleteLoading: boolean;
+  // --- ADDED PROP ---
+  onImageClick: (images: string[], startIndex: number) => void; // Function to open lightbox
 }
 
 export const PurchaseCard: React.FC<PurchaseCardProps> = ({
   purchase,
   farmer,
-  //   onDelete,
-  //   deleteLoading,
+  // --- Keep delete props commented out ---
+  // onDelete,
+  // deleteLoading,
+  onImageClick, // <-- Prop for image click
 }) => {
   const router = useRouter();
+  const hasImages = purchase.images && purchase.images.length > 0;
 
-  // Parse items to display as tags
-  const itemsList = purchase.items
-    .split(',')
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
+  // Parse items list
+  const itemsList =
+    purchase.items
+      ?.split(',')
+      .map((item) => item.trim())
+      .filter(Boolean) || [];
 
   return (
-    <Card
-      className="overflow-hidden hover:shadow-md transition-shadow relative group"
-      // Consider adding onClick={() => router.push(`/purchases/${purchase.id}`)} here if the whole card should navigate
-      // Note: Clicks on buttons inside will need e.stopPropagation() if you do this.
-    >
-      {/* Image Section */}
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow relative group border">
+      {/* Image Section - Clickable if images exist */}
       <div className="relative aspect-[16/9]">
-        {purchase.images && purchase.images.length > 0 ? (
-          <Image
-            src={purchase.images[0]}
-            alt={`Purchase from ${farmer.name}`}
-            fill
-            className="object-cover"
-            onClick={() => router.push(`/purchases/${purchase.id}`)} // Make image clickable
-            style={{ cursor: 'pointer' }}
-          />
-        ) : (
-          <div
-            className="w-full h-full bg-muted flex flex-col items-center justify-center"
-            onClick={() => router.push(`/purchases/${purchase.id}`)} // Make placeholder clickable
-            style={{ cursor: 'pointer' }}
+        {hasImages ? (
+          <button
+            type="button"
+            className="absolute inset-0 w-full h-full focus:outline-none group/img-btn rounded-t-lg overflow-hidden"
+            onClick={() => onImageClick(purchase?.images ?? [], 0)} // Call lightbox handler
+            aria-label={`View photos for purchase on ${purchase.date}`}
           >
-            <ImageIcon className="h-16 w-16 text-muted-foreground opacity-40" />
-            <div className="mt-2 px-4 py-1 rounded-full bg-muted-foreground/20">
-              <Star className="h-4 w-4 inline mr-1 text-yellow-500" />
-              <span className="text-sm font-medium">
-                {purchase.isWorkingCombo ? 'Working Combo' : 'No Images'}
-              </span>
+            <Image
+              src={purchase?.images?.[0] ?? ''}
+              alt={`Purchase from ${farmer.name}`}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+              className="object-cover transition-transform duration-300 group-hover/img-btn:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent group-hover/img-btn:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover/img-btn:opacity-100">
+              <Expand className="h-8 w-8 text-white drop-shadow-lg" />
             </div>
+          </button>
+        ) : (
+          // Placeholder
+          <div className="w-full h-full bg-muted flex flex-col items-center justify-center">
+            <ImageIcon className="h-16 w-16 text-muted-foreground opacity-40" />
+            {purchase.isWorkingCombo && (
+              <div className="mt-2 px-4 py-1 rounded-full bg-muted-foreground/20">
+                <Star className="h-4 w-4 inline mr-1 text-yellow-500" />
+                <span className="text-sm font-medium">Working Combo</span>
+              </div>
+            )}
+            {!purchase.isWorkingCombo && (
+              <span className="text-sm font-medium mt-2 text-muted-foreground">
+                No Images
+              </span>
+            )}
           </div>
         )}
 
@@ -105,9 +121,8 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
         {/* Working combo star */}
         {purchase.isWorkingCombo && (
           <div className="absolute top-2 left-2 pointer-events-none">
-            <Badge className="bg-yellow-500 text-white">
-              <Star className="h-3 w-3 mr-1" />
-              Working Combo
+            <Badge className="bg-yellow-500 text-white shadow">
+              <Star className="h-3 w-3 mr-1" /> Working Combo
             </Badge>
           </div>
         )}
@@ -135,20 +150,24 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
         {/* Farmer Name and Actions */}
         <div className="flex items-center justify-between mb-2">
           <div
-            className="font-bold text-lg truncate flex-1 cursor-pointer"
-            onClick={() => router.push(`/farmers/${farmer.id}`)}
+            className="font-bold text-lg truncate flex-1 cursor-pointer hover:text-primary transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/farmers/${farmer.id}`);
+            }}
           >
             {farmer.name}
           </div>
 
           {/* Edit/Delete buttons */}
           <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
+            {/* Edit Button */}
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
               onClick={(e) => {
-                e.stopPropagation(); // Needed if the whole card is clickable
+                e.stopPropagation();
                 router.push(`/purchases/${purchase.id}/edit`);
               }}
               aria-label="Edit Purchase"
@@ -156,13 +175,16 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
               <Edit className="h-4 w-4" />
             </Button>
 
-            {/* <AlertDialog>
-              <AlertDialogTrigger asChild>
+            {/* --- Keep Delete Dialog Commented Out --- */}
+            {/*
+            <AlertDialog>
+              <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-destructive"
+                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
                   aria-label="Delete Purchase"
+                  disabled={deleteLoading}
                 >
                   {deleteLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -171,26 +193,27 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
                   )}
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete this purchase record from{' '}
-                    {farmer.name}. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground"
-                    onClick={() => onDelete(purchase.id)}
-                    disabled={deleteLoading}
-                  >
-                    {deleteLoading ? 'Deleting...' : 'Delete'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog> */}
+               <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete this purchase record from{' '}
+                      {farmer.name}. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => onDelete(purchase.id)}
+                      disabled={deleteLoading}
+                    >
+                      {deleteLoading ? 'Deleting...' : 'Delete'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+               </AlertDialogContent>
+            </AlertDialog>
+            */}
           </div>
         </div>
 
@@ -221,7 +244,6 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
               {purchase.crop.name}
             </span>
           </div>
-
           <div className="flex items-center text-sm justify-end">
             <Calendar className="h-4 w-4 mr-1 text-muted-foreground flex-shrink-0" />
             <FormattedDate date={purchase.date} />
@@ -230,6 +252,7 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
 
         {/* Financial details */}
         <div className="mt-3 bg-muted/50 rounded-lg p-3 mb-2">
+          {/* ... content ... */}
           <div className="flex justify-between items-center">
             <div>
               <div className="text-xs text-muted-foreground">Total</div>
@@ -271,8 +294,11 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-between mt-1"
-          onClick={() => router.push(`/purchases/${purchase.id}`)} // Links to detail view
+          className="w-full justify-between mt-1 text-primary hover:bg-accent"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/purchases/${purchase.id}`);
+          }}
         >
           View Details
           <ChevronRight className="h-4 w-4" />

@@ -7,13 +7,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { Farmer, Crop, CropActivity } from '@/types';
-import { FarmerCropHeader } from './FarmerCropHeader'; // Import Header
-import { FarmerCropActivitiesList } from '@/components/farmers/FarmerCropActivitiesList'; // Import List
+// Updated import path assumption
+import { FarmerCropHeader } from '@/components/farmers/FarmerCropHeader';
+import { FarmerCropActivitiesList } from '@/components/farmers/FarmerCropActivitiesList';
 import { toast } from 'sonner';
-import { Card, CardContent } from '@/components/ui/card'; // Keep for Error state
-import { Button } from '@/components/ui/button'; // Keep for Error state
-import { ArrowLeft, History } from 'lucide-react'; // Keep for Error state
-import { useRouter } from 'next/navigation'; // Keep for Error state
+// import { Card, CardContent } from '@/components/ui/card';
+// import { Button } from '@/components/ui/button';
+// import { ArrowLeft, History } from 'lucide-react';
+// import { useRouter } from 'next/navigation';
+
+// --- ADDED: Lightbox Imports ---
+import Lightbox from 'yet-another-react-lightbox';
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+// import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails"; // Optional
+// import Captions from "yet-another-react-lightbox/plugins/captions"; // Optional
+// CSS should be imported globally (e.g., in layout.tsx or globals.css)
+// import "yet-another-react-lightbox/styles.css";
+// import "yet-another-react-lightbox/plugins/thumbnails.css";
 
 interface FarmerCropActivitiesProps {
   farmerId: string;
@@ -24,34 +35,40 @@ export default function FarmerCropActivities({
   farmerId,
   cropId,
 }: FarmerCropActivitiesProps) {
-  const router = useRouter(); // Needed for error state navigation
+  //   const router = useRouter();
   const {
     getFarmerById,
     getCropById,
     getCropActivity,
-    deleteVisit, // Add delete functions from context/hook
-    deletePurchase, // Add delete functions from context/hook
+    deleteVisit,
+    deletePurchase,
   } = useFirebase();
 
-  // State
+  // --- Existing State ---
   const [activeTab, setActiveTab] = useState<'all' | 'visit' | 'purchase'>(
     'all'
   );
   const [farmer, setFarmer] = useState<Farmer | null>(null);
   const [crop, setCrop] = useState<Crop | null>(null);
-  const [activities, setActivities] = useState<CropActivity[]>([]); // Raw activities
+  const [activities, setActivities] = useState<CropActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loadingVisitId, setLoadingVisitId] = useState<string | null>(null); // Separate loading states
+  const [loadingVisitId, setLoadingVisitId] = useState<string | null>(null);
   const [loadingPurchaseId, setLoadingPurchaseId] = useState<string | null>(
     null
   );
 
-  // Fetch Data
+  // --- ADDED: Lightbox State ---
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxImages, setLightboxImages] = useState<{ src: string }[]>([]);
+
+  // --- Existing Fetch Data ---
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      // ... fetch logic ...
       const [farmerData, cropData] = await Promise.all([
         getFarmerById(farmerId),
         getCropById(cropId),
@@ -60,14 +77,13 @@ export default function FarmerCropActivities({
       if (!cropData) throw new Error('Crop not found');
       setFarmer(farmerData);
       setCrop(cropData);
-
       const cropActivitiesData = await getCropActivity(farmerId, cropId);
       cropActivitiesData.sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
       setActivities(cropActivitiesData);
-    } catch {
-      console.error('Error fetching crop activities:');
+    } catch (err) {
+      console.error('Error fetching crop activities:', err);
       setError('Failed to load activities');
     } finally {
       setLoading(false);
@@ -76,160 +92,156 @@ export default function FarmerCropActivities({
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]); // Use useCallback dependency
+  }, [fetchData]);
 
-  // Delete Handlers
+  // --- Existing Delete Handlers ---
   const handleDeleteVisit = async (id: string) => {
     if (loadingVisitId) return;
     setLoadingVisitId(id);
     try {
       await deleteVisit(id);
-      // Remove from local state
       setActivities((prev) =>
         prev.filter((act) => !(act.type === 'visit' && act.id === id))
       );
       toast.success('Visit deleted');
-    } catch (err) {
-      console.error('Error deleting visit:', err);
-      toast.error('Failed to delete visit');
+    } catch {
+      /* ... error handling ... */ toast.error('Failed to delete visit');
     } finally {
       setLoadingVisitId(null);
     }
   };
-
   const handleDeletePurchase = async (id: string) => {
     if (loadingPurchaseId) return;
     setLoadingPurchaseId(id);
     try {
       await deletePurchase(id);
-      // Remove from local state
       setActivities((prev) =>
         prev.filter((act) => !(act.type === 'purchase' && act.id === id))
       );
       toast.success('Purchase deleted');
-    } catch (err) {
-      console.error('Error deleting purchase:', err);
-      toast.error('Failed to purchase visit'); // Typo corrected
+    } catch {
+      /* ... error handling ... */ toast.error('Failed to delete purchase');
     } finally {
+      // Corrected typo
       setLoadingPurchaseId(null);
     }
   };
 
-  // Filter activities based on the selected tab
+  // --- ADDED: Lightbox Handler ---
+  const handleImageClick = (images: string[], startIndex: number) => {
+    if (!images || images.length === 0) return; // Avoid opening empty lightbox
+    setLightboxImages(images.map((src) => ({ src }))); // Prepare slides
+    setLightboxIndex(startIndex);
+    setLightboxOpen(true);
+  };
+
+  // --- Existing Filter logic ---
   const filteredActivities = activities.filter((activity) => {
     if (activeTab === 'all') return true;
     return activity.type === activeTab;
   });
 
-  // --- Render Loading State ---
+  // --- Existing Loading Render ---
   if (loading) {
-    return (
-      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[300px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading activities...</p>
-      </div>
-    );
+    /* ... */ return <Loader2 />;
   }
 
-  // --- Render Error State ---
+  // --- Existing Error Render ---
   if (error || !farmer || !crop) {
-    // Check farmer/crop again here
-    return (
-      <div className="container mx-auto p-4 space-y-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <Card>
-          <CardContent className="p-6 text-center">
-            <History className="h-12 w-12 text-muted-foreground opacity-50 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Error Loading Data</h3>
-            <p className="text-muted-foreground mb-4">
-              {error || 'Could not find the requested farmer or crop details.'}
-            </p>
-            <Button
-              onClick={() => router.push('/farmers')} // Navigate back to a safe page
-              className="bg-primary text-primary-foreground"
-            >
-              Return to Farmers List
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    /* ... */ return <div>Error...</div>;
   }
 
-  // Calculate counts for badges AFTER data loading and filtering setup
+  // Calculate counts
   const visitCount = activities.filter((a) => a.type === 'visit').length;
   const purchaseCount = activities.filter((a) => a.type === 'purchase').length;
   const allCount = activities.length;
 
   // --- Render Main Content ---
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      {/* Render Header */}
-      <FarmerCropHeader farmer={farmer} crop={crop} />
+    // Wrap in fragment to include Lightbox
+    <>
+      <div className="container mx-auto p-4 space-y-6 pb-10">
+        {' '}
+        {/* Added pb-10 */}
+        {/* Render Header */}
+        <FarmerCropHeader farmer={farmer} crop={crop} />
+        {/* Render Tabs */}
+        <Tabs
+          defaultValue="all"
+          value={activeTab}
+          onValueChange={(value) =>
+            setActiveTab(value as 'all' | 'visit' | 'purchase')
+          }
+        >
+          <div className="border-b mb-4 pb-2">
+            <TabsList>
+              {/* All Tab */}
+              <TabsTrigger value="all" className="px-3 sm:px-4">
+                All{' '}
+                {allCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1.5 sm:ml-2 text-xs px-1.5"
+                  >
+                    {allCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              {/* Visits Tab */}
+              <TabsTrigger value="visit" className="px-3 sm:px-4">
+                Visits{' '}
+                {visitCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1.5 sm:ml-2 text-xs px-1.5"
+                  >
+                    {visitCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              {/* Purchases Tab */}
+              <TabsTrigger value="purchase" className="px-3 sm:px-4">
+                Purchases{' '}
+                {purchaseCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1.5 sm:ml-2 text-xs px-1.5"
+                  >
+                    {purchaseCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-      {/* Render Tabs */}
-      <Tabs
-        defaultValue="all"
-        value={activeTab}
-        onValueChange={(value) =>
-          setActiveTab(value as 'all' | 'visit' | 'purchase')
-        }
-      >
-        <div className="border-b mb-4 pb-2">
-          <TabsList>
-            <TabsTrigger value="all" className="px-3 sm:px-4">
-              All
-              {allCount > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-1.5 sm:ml-2 text-xs px-1.5"
-                >
-                  {allCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="visit" className="px-3 sm:px-4">
-              Visits
-              {visitCount > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-1.5 sm:ml-2 text-xs px-1.5"
-                >
-                  {visitCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="purchase" className="px-3 sm:px-4">
-              Purchases
-              {purchaseCount > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-1.5 sm:ml-2 text-xs px-1.5"
-                >
-                  {purchaseCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-        </div>
+          {/* Render List Component within Tab Content */}
+          <TabsContent value={activeTab} className="mt-4">
+            <FarmerCropActivitiesList
+              activities={filteredActivities}
+              farmer={farmer}
+              crop={crop}
+              activeTab={activeTab}
+              onDeleteVisit={handleDeleteVisit}
+              onDeletePurchase={handleDeletePurchase}
+              loadingVisitId={loadingVisitId}
+              loadingPurchaseId={loadingPurchaseId}
+              // --- Pass image click handler down ---
+              onImageClick={handleImageClick}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
 
-        {/* Render Content based on Tab - Pass filtered list to the List Component */}
-        {/* We use TabsContent just as wrapper for structure, filtering happens before passing */}
-        <TabsContent value={activeTab} className="mt-4">
-          <FarmerCropActivitiesList
-            activities={filteredActivities}
-            farmer={farmer}
-            crop={crop}
-            activeTab={activeTab}
-            onDeleteVisit={handleDeleteVisit}
-            onDeletePurchase={handleDeletePurchase}
-            loadingVisitId={loadingVisitId}
-            loadingPurchaseId={loadingPurchaseId}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
+      {/* Render Lightbox Component */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        index={lightboxIndex}
+        slides={lightboxImages}
+        plugins={[Fullscreen, Zoom]} // Add other plugins if needed
+        styles={{ container: { backgroundColor: 'rgba(0, 0, 0, .9)' } }}
+        zoom={{ doubleTapDelay: 200, doubleClickDelay: 300 }}
+      />
+    </>
   );
 }

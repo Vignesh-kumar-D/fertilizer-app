@@ -8,6 +8,9 @@ import './globals.css';
 import { MockDataProvider } from '@/lib/mock-data-context';
 import { FirebaseProvider } from '@/lib/firebase/firebase-context';
 import { BottomNavigation } from '@/components/shared/BottonNavigation';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/thumbnails.css';
+import 'yet-another-react-lightbox/plugins/captions.css';
 
 const APP_NAME = 'Sree Vetri Agro services';
 const APP_DEFAULT_TITLE = 'Sree Vetri Agro services';

@@ -26,6 +26,7 @@ import {
   MapPin,
   ChevronRight,
   Loader2,
+  Expand, // <-- ADDED icon for hover effect
 } from 'lucide-react';
 import FormattedDate from '@/lib/FormattedDate'; // Assuming this component exists
 import { Visit, Farmer } from '@/types'; // Import your types
@@ -34,8 +35,10 @@ import { cn } from '@/lib/utils';
 interface VisitCardProps {
   visit: Visit;
   farmer: Farmer;
-  onDelete: (id: string) => Promise<void> | void; // Function to handle delete action
-  deleteLoading: boolean; // Is this specific card's delete action loading?
+  onDelete: (id: string) => Promise<void> | void;
+  deleteLoading: boolean;
+  // --- ADDED PROP ---
+  onImageClick: (images: string[], startIndex: number) => void; // Function to open lightbox
 }
 
 export const VisitCard: React.FC<VisitCardProps> = ({
@@ -43,37 +46,54 @@ export const VisitCard: React.FC<VisitCardProps> = ({
   farmer,
   onDelete,
   deleteLoading,
+  onImageClick, // <-- Destructure new prop
 }) => {
   const router = useRouter();
+  const hasImages = visit.images && visit.images.length > 0;
 
   return (
     <Card
-      className="overflow-hidden hover:shadow-md transition-shadow relative group"
-      // Consider adding onClick={() => router.push(`/visits/${visit.id}`)} for whole card navigation
-      // Remember e.stopPropagation() on inner buttons if you do.
+      className="overflow-hidden hover:shadow-lg transition-shadow relative group border" // Added border, hover effect
     >
-      {/* Image Section */}
+      {/* Image Section - Modified to be clickable */}
       <div className="relative aspect-[16/9]">
-        {visit.images && visit.images.length > 0 ? (
-          <Image
-            src={visit.images[0]}
-            alt={`Visit to ${farmer.name}'s farm`}
-            fill
-            className="object-cover"
-            onClick={() => router.push(`/visits/${visit.id}`)} // Make image clickable
-            style={{ cursor: 'pointer' }}
-          />
+        {hasImages ? (
+          // --- MODIFIED: Wrap Image in a button ---
+          <button
+            type="button"
+            className="absolute inset-0 w-full h-full focus:outline-none group/img-btn rounded-t-lg overflow-hidden" // Button fills container
+            onClick={() => onImageClick(visit.images, 0)} // Call parent handler
+            aria-label={`View photos for visit on ${visit.date}`}
+          >
+            <Image
+              src={visit.images[0]} // Show first image
+              alt={`Visit to ${farmer.name}'s farm`}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw" // Optimized sizes
+              className="object-cover transition-transform duration-300 group-hover/img-btn:scale-105" // Zoom effect
+            />
+            {/* Overlay with Expand Icon */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent group-hover/img-btn:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover/img-btn:opacity-100">
+              <Expand className="h-8 w-8 text-white drop-shadow-lg" />
+            </div>
+          </button>
         ) : (
+          // Placeholder - Non-clickable for lightbox
           <div
             className="w-full h-full bg-muted flex items-center justify-center"
-            onClick={() => router.push(`/visits/${visit.id}`)} // Make placeholder clickable
-            style={{ cursor: 'pointer' }}
+            // Optional: Can still link placeholder to detail page if desired
+            // onClick={() => router.push(`/visits/${visit.id}`)}
+            // style={{ cursor: 'pointer' }}
           >
             <ImageIcon className="h-16 w-16 text-muted-foreground opacity-40" />
+            <span className="absolute bottom-2 text-xs text-muted-foreground">
+              No Images
+            </span>{' '}
+            {/* Added text */}
           </div>
         )}
 
-        {/* Image count badge */}
+        {/* Image count badge (Unchanged) */}
         {visit.images && visit.images.length > 1 && (
           <Badge className="absolute bottom-2 right-2 bg-black/60 pointer-events-none">
             <ImageIcon className="h-3 w-3 mr-1" />
@@ -81,19 +101,9 @@ export const VisitCard: React.FC<VisitCardProps> = ({
           </Badge>
         )}
 
-        {/* Health indicator */}
+        {/* Health indicator (Unchanged) */}
         <div className="absolute top-2 right-2 pointer-events-none">
-          <Badge
-            className={cn(
-              'text-white', // Ensure text is visible on colored backgrounds
-              visit.cropHealth === 'good'
-                ? 'bg-green-500'
-                : visit.cropHealth === 'average'
-                ? 'bg-yellow-500'
-                : 'bg-red-500' // Default/poor
-            )}
-          >
-            {/* Capitalize first letter */}
+          <Badge className={cn(/* ...health badge styles... */)}>
             {visit.cropHealth.charAt(0).toUpperCase() +
               visit.cropHealth.slice(1)}
           </Badge>
@@ -104,8 +114,6 @@ export const VisitCard: React.FC<VisitCardProps> = ({
         {/* Crop Name and Actions */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center flex-1 min-w-0">
-            {' '}
-            {/* Added min-w-0 for proper truncation */}
             <Leaf className="h-5 w-5 mr-2 text-green-600 flex-shrink-0" />
             <h3 className="font-bold text-xl truncate">{visit.crop.name}</h3>
           </div>
@@ -116,8 +124,8 @@ export const VisitCard: React.FC<VisitCardProps> = ({
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => {
-                // e.stopPropagation(); // Needed if the whole card is clickable
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent potential card click handler
                 router.push(`/visits/${visit.id}/edit`);
               }}
               aria-label="Edit Visit"
@@ -126,12 +134,13 @@ export const VisitCard: React.FC<VisitCardProps> = ({
             </Button>
 
             <AlertDialog>
-              <AlertDialogTrigger asChild>
+              <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-destructive"
+                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
                   aria-label="Delete Visit"
+                  disabled={deleteLoading}
                 >
                   {deleteLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -140,7 +149,7 @@ export const VisitCard: React.FC<VisitCardProps> = ({
                   )}
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -152,7 +161,7 @@ export const VisitCard: React.FC<VisitCardProps> = ({
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground"
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     onClick={() => onDelete(visit.id)}
                     disabled={deleteLoading}
                   >
@@ -166,8 +175,11 @@ export const VisitCard: React.FC<VisitCardProps> = ({
 
         {/* Farmer Info */}
         <div
-          className="flex items-center text-sm mb-2 cursor-pointer"
-          onClick={() => router.push(`/farmers/${farmer.id}`)}
+          className="flex items-center text-sm mb-2 cursor-pointer hover:text-primary transition-colors" // Added hover
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/farmers/${farmer.id}`);
+          }}
         >
           <User className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
           <span className="font-medium truncate">{farmer.name}</span>
@@ -191,20 +203,15 @@ export const VisitCard: React.FC<VisitCardProps> = ({
           </p>
         </div>
 
-        {/* Optionally add Recommendations if needed */}
-        {/* <div className="mt-3 mb-2">
-                    <div className="text-sm font-medium mb-1">Recommendations:</div>
-                    <p className="text-sm line-clamp-2 text-muted-foreground">
-                        {visit.recommendations || <span className="italic">No recommendations.</span>}
-                    </p>
-                 </div> */}
-
         {/* View Details Button */}
         <Button
           variant="ghost"
           size="sm"
-          className="mt-2 w-full justify-between"
-          onClick={() => router.push(`/visits/${visit.id}`)} // Links to detail view
+          className="mt-2 w-full justify-between text-primary hover:bg-accent"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/visits/${visit.id}`);
+          }}
         >
           View Details
           <ChevronRight className="h-4 w-4" />

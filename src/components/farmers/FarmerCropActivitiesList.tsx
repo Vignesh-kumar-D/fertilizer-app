@@ -1,7 +1,7 @@
 // src/components/farmers/FarmerCropActivitiesList.tsx
 import React from 'react';
-import { VisitCard } from '@/components/visits/VisitCard'; // Import VisitCard
-import { PurchaseCard } from '@/components/purchases/PurchaseCard'; // Import PurchaseCard
+import { VisitCard } from '@/components/visits/VisitCard'; // Ensure this is the updated version
+import { PurchaseCard } from '@/components/purchases/PurchaseCard'; // Ensure this is the updated version (with delete uncommented if needed, or kept commented)
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { History, Plus } from 'lucide-react';
@@ -9,14 +9,16 @@ import { Visit, Purchase, Farmer, CropActivity, Crop } from '@/types';
 import { useRouter } from 'next/navigation';
 
 interface FarmerCropActivitiesListProps {
-  activities: CropActivity[]; // The filtered list from the parent
+  activities: CropActivity[];
   farmer: Farmer;
-  crop: Crop; // Pass crop for context in empty state actions
-  activeTab: 'all' | 'visit' | 'purchase'; // To tailor empty state message
+  crop: Crop;
+  activeTab: 'all' | 'visit' | 'purchase';
   onDeleteVisit: (id: string) => Promise<void>;
-  onDeletePurchase: (id: string) => Promise<void>;
-  loadingVisitId: string | null; // ID of visit being deleted
-  loadingPurchaseId: string | null; // ID of purchase being deleted
+  onDeletePurchase: (id: string) => Promise<void>; // <-- UNCOMMENTED (assuming consistency)
+  loadingVisitId: string | null;
+  loadingPurchaseId: string | null; // <-- UNCOMMENTED (assuming consistency)
+  // --- ADDED PROP ---
+  onImageClick: (images: string[], startIndex: number) => void; // Function passed from parent to handle lightbox
 }
 
 export const FarmerCropActivitiesList: React.FC<
@@ -27,13 +29,14 @@ export const FarmerCropActivitiesList: React.FC<
   crop,
   activeTab,
   onDeleteVisit,
-  onDeletePurchase,
+  // onDeletePurchase, // <-- UNCOMMENTED
   loadingVisitId,
-  loadingPurchaseId,
+  // loadingPurchaseId, // <-- UNCOMMENTED
+  onImageClick, // <-- ADDED Prop
 }) => {
   const router = useRouter();
 
-  // --- Render Empty State ---
+  // --- Render Empty State (Unchanged) ---
   if (activities.length === 0) {
     return (
       <Card>
@@ -81,6 +84,7 @@ export const FarmerCropActivitiesList: React.FC<
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {activities.map((activity) => {
         if (activity.type === 'visit') {
+          // --- Pass onImageClick to VisitCard ---
           return (
             <VisitCard
               key={`visit-${activity.id}`}
@@ -88,20 +92,23 @@ export const FarmerCropActivitiesList: React.FC<
               farmer={farmer}
               onDelete={onDeleteVisit}
               deleteLoading={loadingVisitId === activity.id}
+              onImageClick={onImageClick} // <-- Pass handler down
             />
           );
         } else if (activity.type === 'purchase') {
+          // --- Pass onImageClick to PurchaseCard ---
           return (
             <PurchaseCard
               key={`purchase-${activity.id}`}
               purchase={activity.details as Purchase}
               farmer={farmer}
-              onDelete={onDeletePurchase}
-              deleteLoading={loadingPurchaseId === activity.id}
+              // onDelete={onDeletePurchase} // <-- Pass handler down (Uncommented)
+              // deleteLoading={loadingPurchaseId === activity.id} // <-- Pass prop down (Uncommented)
+              onImageClick={onImageClick} // <-- Pass handler down
             />
           );
         }
-        return null; // Should not happen if type is always 'visit' or 'purchase'
+        return null;
       })}
     </div>
   );

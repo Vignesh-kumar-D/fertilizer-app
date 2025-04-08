@@ -7,8 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
   Calendar,
   Clipboard,
   ListChecks,
@@ -17,13 +15,24 @@ import {
   Loader2,
   User,
   MapPin,
+  Expand, // Icon for fullscreen trigger
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { Visit, Farmer } from '@/types';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import Image from 'next/image';
-import { ImageCarousel } from '@/components/shared/Imagecarousel';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import Image from 'next/image'; // Keep next/image for previews
+import { format } from 'date-fns'; // Use date-fns for robust formatting
+
+// Import Lightbox component and plugins
+import Lightbox from 'yet-another-react-lightbox';
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+
+// Remember to import CSS globally (layout.tsx or globals.css)
+// import "yet-another-react-lightbox/styles.css";
+// import "yet-another-react-lightbox/plugins/thumbnails.css";
+// import "yet-another-react-lightbox/plugins/captions.css";
 
 export default function VisitDetailPage() {
   const router = useRouter();
@@ -34,33 +43,24 @@ export default function VisitDetailPage() {
   const [farmer, setFarmer] = useState<Farmer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const [fullscreenView, setFullscreenView] = useState(false);
+  // State for Lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  // Fetch visit and farmer data
+  // --- Fetch visit and farmer data (no changes needed here) ---
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null); // Reset error
       try {
         const visitData = await getVisitById(id as string);
-
-        if (!visitData) {
-          setError('Visit not found');
-          setLoading(false);
-          return;
-        }
-
+        if (!visitData) throw new Error('Visit not found');
         setVisit(visitData);
 
-        // Fetch farmer data
         const farmerData = await getFarmerById(visitData.farmerId);
-
-        if (!farmerData) {
-          setError('Farmer information not found');
-        } else {
-          setFarmer(farmerData);
-        }
+        if (!farmerData) throw new Error('Farmer information not found'); // Throw error to be caught
+        setFarmer(farmerData);
       } catch (err) {
         console.error('Error fetching visit details:', err);
         setError('Failed to load visit details');
@@ -68,52 +68,37 @@ export default function VisitDetailPage() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [id, getVisitById, getFarmerById]);
 
-  // Image carousel touch/swipe handlers
-
-  // Image navigation functions
-  const nextImage = () => {
-    if (!visit?.images?.length) return;
-    setCurrentImageIndex((prev) =>
-      prev === visit.images.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const previousImage = () => {
-    if (!visit?.images?.length) return;
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? visit.images.length - 1 : prev - 1
-    );
-  };
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
+  // --- Helper function to format date ---
+  const formatDate = (dateString: string): string => {
     try {
-      const date = new Date(dateString);
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }).format(date);
+      return format(new Date(dateString), 'PPP'); // e.g., Apr 8th, 2025
     } catch {
-      return dateString;
+      return dateString; // Fallback
     }
   };
 
-  // Loading state
+  // --- Prepare slides for Lightbox ---
+  const slides =
+    visit?.images?.map((imgUrl, index) => ({
+      src: imgUrl,
+      title: `Visit Photo ${index + 1}`,
+      description: `Image ${index + 1} of ${visit.images?.length || 0}`,
+    })) || [];
+
+  // --- Loading State ---
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64">
+      <div className="flex min-h-[40vh] flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="mt-4 text-muted-foreground">Loading visit details...</p>
       </div>
     );
   }
 
-  // Error state
+  // --- Error State ---
   if (error || !visit) {
     return (
       <div className="container mx-auto p-4 max-w-3xl">
@@ -121,14 +106,12 @@ export default function VisitDetailPage() {
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Error</h1>
-          </div>
+          <h1 className="text-2xl font-bold">Error</h1>
         </div>
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">
-              {error || 'Visit not found'}
+              {error || 'Visit could not be loaded.'}
             </p>
             <Button className="mt-4" onClick={() => router.push('/visits')}>
               Return to Visits
@@ -139,163 +122,178 @@ export default function VisitDetailPage() {
     );
   }
 
-  const hasImages = visit.images && visit.images.length > 0;
-  const hasMultipleImages = visit.images && visit.images.length > 1;
-
-  // Image Carousel Component
+  // Derived state for images
+  const hasImages = slides.length > 0;
 
   return (
-    <div className="container mx-auto p-4 max-w-3xl">
-      <div className="mb-6 flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Visit Details</h1>
-          {farmer && <p className="text-muted-foreground">{farmer.name}</p>}
+    <>
+      <div className="container mx-auto p-4 max-w-3xl pb-10">
+        {' '}
+        {/* Added pb-10 */}
+        {/* Header */}
+        <div className="mb-6 flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Visit Details</h1>
+            {farmer && <p className="text-muted-foreground">{farmer.name}</p>}
+          </div>
         </div>
-      </div>
-      <div className="grid gap-6">
-        {farmer && (
+        {/* Main Content Grid */}
+        <div className="grid gap-6">
+          {/* Farmer Info Card */}
+          {farmer && (
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <User className="h-5 w-5 text-primary" />
+                  <h2 className="font-semibold">Farmer Information</h2>
+                </div>
+                {/* ... farmer details grid ... */}
+                <div className="grid gap-4 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Name</span>
+                    <span>{farmer.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Location</span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      {farmer.location}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Phone</span>
+                    <span>{farmer.phone}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Visit Info Card */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
-                <User className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">Farmer Information</h2>
+                <Calendar className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">Visit Information</h2>
               </div>
-              <div className="grid gap-4">
+              {/* ... visit details grid ... */}
+              <div className="grid gap-4 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Name</span>
-                  <span>{farmer.name}</span>
+                  <span className="text-muted-foreground">Visit Date</span>
+                  <span>{formatDate(visit.date)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Location</span>
+                  <span className="text-muted-foreground">Crop</span>
                   <span className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    {farmer.location}
+                    <Leaf className="h-4 w-4 text-green-600" />
+                    {visit.crop.name}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Phone</span>
-                  <span>{farmer.phone}</span>
+                  <span className="text-muted-foreground">Crop Health</span>
+                  <span className="flex items-center gap-2">
+                    <Circle
+                      className={`h-3 w-3 ${
+                        visit.cropHealth === 'good'
+                          ? 'text-green-500'
+                          : visit.cropHealth === 'average'
+                          ? 'text-yellow-500'
+                          : 'text-red-500'
+                      }`}
+                      fill="currentColor" // Fill the circle
+                    />
+                    {visit.cropHealth.charAt(0).toUpperCase() +
+                      visit.cropHealth.slice(1)}
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
-        )}
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Visit Information</h2>
-            </div>
-            <div className="grid gap-4">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Visit Date</span>
-                <span>{formatDate(visit.date)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Crop</span>
-                <span className="flex items-center gap-1">
-                  <Leaf className="h-4 w-4 text-green-600" />
-                  {visit.crop.name}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Crop Health</span>
-                <span className="flex items-center gap-2">
-                  <Circle
-                    className={`h-3 w-3 ${
-                      visit.cropHealth === 'good'
-                        ? 'text-green-500'
-                        : visit.cropHealth === 'average'
-                        ? 'text-yellow-500'
-                        : 'text-red-500'
-                    }`}
-                  />
-                  {visit.cropHealth.charAt(0).toUpperCase() +
-                    visit.cropHealth.slice(1)}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {hasImages && (
-          <>
-            <Card className="mb-6 overflow-hidden border shadow-sm">
-              <CardContent className="p-0">
-                <ImageCarousel images={visit.images} />
+          {/* Image Section - Renders a grid of clickable thumbnails */}
+          {hasImages && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  {/* Optional: Add an Image icon here */}
+                  <h2 className="font-semibold">Photos ({slides.length})</h2>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {slides.map((slide, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className="relative aspect-square overflow-hidden rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        setLightboxIndex(index);
+                        setLightboxOpen(true);
+                      }}
+                    >
+                      <Image
+                        src={slide.src}
+                        alt={`Thumbnail ${index + 1}`}
+                        fill
+                        sizes="(max-width: 640px) 30vw, (max-width: 768px) 22vw, 18vw" // Optimize image loading sizes
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <Expand className="h-6 w-6 text-white" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </CardContent>
             </Card>
+          )}
 
-            {/* Fullscreen dialog for images */}
-            <Dialog open={fullscreenView} onOpenChange={setFullscreenView}>
-              <DialogContent className="max-w-screen-lg w-[90vw] h-[90vh] p-0 bg-black">
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <VisuallyHidden>
-                    <DialogTitle>Visit Image</DialogTitle>
-                  </VisuallyHidden>
-                  <Image
-                    src={visit.images[currentImageIndex]}
-                    alt={`Visit photo ${currentImageIndex + 1}`}
-                    fill
-                    className="max-w-full max-h-full object-contain"
-                  />
+          {/* Recommendations Card */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <ListChecks className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">Recommendations</h2>
+              </div>
+              <p className="text-muted-foreground whitespace-pre-wrap text-sm">
+                {visit.recommendations || (
+                  <span className="italic">No recommendations recorded.</span>
+                )}
+              </p>
+            </CardContent>
+          </Card>
 
-                  {hasMultipleImages && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full h-12 w-12"
-                        onClick={previousImage}
-                      >
-                        <ChevronLeft className="h-8 w-8" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full h-12 w-12"
-                        onClick={nextImage}
-                      >
-                        <ChevronRight className="h-8 w-8" />
-                      </Button>
-                    </>
-                  )}
-
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded-full px-3 py-1.5">
-                    {currentImageIndex + 1} / {visit.images.length}
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </>
-        )}
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <ListChecks className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Recommendations</h2>
-            </div>
-            <p className="text-muted-foreground whitespace-pre-wrap">
-              {visit.recommendations}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Clipboard className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Notes</h2>
-            </div>
-            <p className="text-muted-foreground whitespace-pre-wrap">
-              {visit.notes}
-            </p>
-          </CardContent>
-        </Card>
+          {/* Notes Card */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Clipboard className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">Notes</h2>
+              </div>
+              <p className="text-muted-foreground whitespace-pre-wrap text-sm">
+                {visit.notes || (
+                  <span className="italic">No notes recorded.</span>
+                )}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+
+      {/* Render the Lightbox */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        index={lightboxIndex}
+        slides={slides}
+        // Enable plugins
+        plugins={[Fullscreen, Zoom, Thumbnails, Captions]}
+        // Optional: Customize zoom, captions, etc.
+        zoom={{ doubleTapDelay: 200, doubleClickDelay: 300 }}
+        captions={{ showToggle: true, descriptionTextAlign: 'center' }}
+        styles={{ container: { backgroundColor: 'rgba(0, 0, 0, .9)' } }} // Darker background
+      />
+    </>
   );
 }
