@@ -190,7 +190,15 @@ export const VisitCard: React.FC<VisitCardProps> = ({
           <Calendar className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
           <FormattedDate date={visit.date} />
         </div>
-
+        {/* Notes Section */}
+        <div className="mt-3 mb-2">
+          <div className="text-sm font-medium mb-1">Recommendations:</div>
+          <p className="text-sm line-clamp-2 text-muted-foreground">
+            {visit.recommendations || (
+              <span className="italic">No recommendations recorded.</span>
+            )}
+          </p>
+        </div>
         {/* Notes Section */}
         <div className="mt-3 mb-2">
           <div className="text-sm font-medium mb-1">Notes:</div>
