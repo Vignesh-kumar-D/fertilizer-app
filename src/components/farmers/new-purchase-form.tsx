@@ -221,7 +221,19 @@ export default function PurchaseForm({
 
   // Watch for farmer ID changes
   const farmerIdValue = form.watch('farmerId');
+  const [todayDateString, setTodayDateString] = useState('');
 
+  useEffect(() => {
+    // Set the max date string once the component mounts (client-side)
+    // to avoid server-client mismatch issues if rendering server-side initially.
+    const today = new Date();
+    // Format date as 'YYYY-MM-DD' required for the max attribute
+    // Ensures correct padding for month/day (e.g., 04 instead of 4)
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+    setTodayDateString(`${year}-${month}-${day}`);
+  }, []); // Empty dependency array ensures this runs only once on mount
   // Update available crops when farmer changes
   useEffect(() => {
     if (isEdit && !editPurchase) return; // Wait for edit data to load
@@ -573,7 +585,12 @@ export default function PurchaseForm({
                     <FormItem>
                       <FormLabel>Purchase Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} disabled={submitting} />
+                        <Input
+                          max={todayDateString}
+                          type="date"
+                          {...field}
+                          disabled={submitting}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
