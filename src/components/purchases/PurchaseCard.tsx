@@ -1,5 +1,5 @@
 // src/components/purchases/PurchaseCard.tsx
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
@@ -63,12 +63,29 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
   const hasImages = purchase.images && purchase.images.length > 0;
 
   // Parse items list
-  const itemsList =
-    purchase.items
-      ?.split(',')
-      .map((item) => item.trim())
-      .filter(Boolean) || []; // Handle potential undefined/empty string
+  const itemsContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollItems, setCanScrollItems] = useState(false);
 
+  // --- ADDED: Effect to check for scroll overflow ---
+  // Use useLayoutEffect to check dimensions after render but before paint
+  useLayoutEffect(() => {
+    const checkScroll = () => {
+      const element = itemsContainerRef.current;
+      if (element) {
+        // Check if scrollHeight (total content height) is greater than clientHeight (visible height)
+        // Add a small threshold (e.g., 1px) to avoid floating point issues or minor overlaps
+        setCanScrollItems(element.scrollHeight > element.clientHeight + 1);
+      } else {
+        setCanScrollItems(false);
+      }
+    };
+
+    checkScroll(); // Check on initial render and when items change
+
+    // OPTIONAL: Re-check on window resize if your layout might change card width significantly
+    // window.addEventListener('resize', checkScroll);
+    // return () => window.removeEventListener('resize', checkScroll);
+  }, [purchase.items]);
   return (
     <Card
       className="overflow-hidden hover:shadow-lg transition-shadow relative group border flex flex-col" // Added flex flex-col
@@ -168,30 +185,34 @@ export const PurchaseCard: React.FC<PurchaseCardProps> = ({
 
         {/* === MODIFIED ITEMS LIST SECTION === */}
         <div className="mb-4">
-          {' '}
-          {/* Container for the items section */}
           <div className="text-xs font-medium mb-1.5 text-muted-foreground">
             Items Purchased:
           </div>
-          {/* Scrollable container with max height for ~3 lines */}
-          <div className="max-h-[4.5rem] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted/50 scrollbar-track-transparent">
-            {/* Adjust max-h-[4.5rem] (72px) if your line height differs significantly */}
-            {itemsList.length > 0 ? (
-              // Map over ALL items
-              itemsList.map((item, index) => (
-                // Display each item as a paragraph
-                <span
-                  key={index}
-                  className="text-sm font-semibold text-foreground mb-1 break-words last:mb-0" // Style: Bold, black, spacing, word break
-                >
-                  {item}
+          {/* Container needs 'relative' for positioning the gradient */}
+          <div className="relative">
+            {/* Scrollable container with max height */}
+            <div
+              ref={itemsContainerRef} // <-- Apply Ref here
+              className="max-h-[4.5rem] overflow-y-auto pr-2 pb-1 scrollbar-thin scrollbar-thumb-muted/50 scrollbar-track-transparent"
+              // Optional: Add onScroll handler if you want fade to disappear while scrolling near bottom
+            >
+              {/* Render items text (respecting newlines) */}
+              {purchase.items ? (
+                <p className="text-sm font-semibold text-foreground break-words whitespace-pre-line">
+                  {purchase.items}
+                </p>
+              ) : (
+                <span className="text-sm text-muted-foreground italic">
+                  No items listed.
                 </span>
-              ))
-            ) : (
-              // Empty state
-              <span className="text-sm text-muted-foreground italic">
-                No specific items listed.
-              </span>
+              )}
+            </div>
+            {/* Conditional Scroll Indicator (Gradient Fade) */}
+            {canScrollItems && ( // <-- Render indicator based on state
+              <div
+                className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none rounded-b-md" // Fade from card background, match rounding if needed
+                aria-hidden="true"
+              />
             )}
           </div>
         </div>
