@@ -333,6 +333,12 @@ export function FarmerList() {
                     <span className="text-muted-foreground">Last Visit:</span>
                     <FormattedDate date={farmer.lastVisitDate} />
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Last Purchase:
+                    </span>
+                    <FormattedDate date={farmer.lastPurchaseDate ?? ''} />
+                  </div>
                 </div>
                 {/* === THIS IS THE UPDATED CROPS SECTION === */}
                 <div className="border-t pt-3 mb-4">

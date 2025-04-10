@@ -6,7 +6,11 @@ const FormattedDate = ({ date }: { date: string | Date }) => {
   const [formattedDate, setFormattedDate] = useState('');
 
   useEffect(() => {
-    setFormattedDate(new Date(date).toLocaleDateString());
+    if (date) {
+      setFormattedDate(new Date(date).toLocaleDateString());
+    } else {
+      setFormattedDate('');
+    }
   }, [date]);
 
   return <span>{formattedDate}</span>;
