@@ -1,7 +1,7 @@
 // src/components/farmers/FarmerList.tsx (or your file path)
 'use client';
 
-import React, { useState, useEffect } from 'react'; // Import React
+import React, { useState, useEffect, useCallback } from 'react'; // Import React
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Edit2,
@@ -23,7 +23,9 @@ import { useFirebase } from '@/lib/firebase/firebase-context'; // Adjust path as
 import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { cn } from '@/lib/utils'; // Adjust path as needed
 import { toast } from 'sonner';
-
+import Lightbox from 'yet-another-react-lightbox';
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 export function FarmerList() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,25 +39,38 @@ export function FarmerList() {
   const [searching, setSearching] = useState(false); // Search operation
   const [loadingMore, setLoadingMore] = useState(false); // Pagination load
   const [hasMore, setHasMore] = useState(true); // More data available for pagination
-
+  // --- ADDED: Lightbox State ---
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  // Index is always 0 for single image, but state helps manage lightbox props
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxImages, setLightboxImages] = useState<{ src: string }[]>([]);
   // Initial fetch of farmers using useCallback for stable reference
-  const fetchInitialFarmers = async (showLoading = true) => {
-    if (showLoading) setLoading(true); // Control loading state visibility
-    setSearching(false);
-    // setSearchTerm(''); // Resetting search term here can sometimes cause issues if called from search effect. Reset outside effects.
-    try {
-      const response = await getFarmers();
-      setFarmers(response.data);
-      setLastDoc(response.lastDoc);
-      setHasMore(response.data.length >= 20);
-    } catch (error) {
-      console.error('Error fetching farmers:', error);
-      toast.error('Failed to fetch farmers list.'); // --- ADDED: Toast ---
-    } finally {
-      if (showLoading) setLoading(false);
-    }
+  const fetchInitialFarmers = useCallback(
+    async (showLoading = true) => {
+      if (showLoading) setLoading(true); // Control loading state visibility
+      setSearching(false);
+      // setSearchTerm(''); // Resetting search term here can sometimes cause issues if called from search effect. Reset outside effects.
+      try {
+        const response = await getFarmers();
+        setFarmers(response.data);
+        setLastDoc(response.lastDoc);
+        setHasMore(response.data.length >= 20);
+      } catch (error) {
+        console.error('Error fetching farmers:', error);
+        toast.error('Failed to fetch farmers list.'); // --- ADDED: Toast ---
+      } finally {
+        if (showLoading) setLoading(false);
+      }
+    },
+    [getFarmers]
+  );
+  // --- ADDED: Handler for Farmer Image Click ---
+  const handleFarmerImageClick = (imageUrl: string) => {
+    if (!imageUrl) return; // Don't open if no image URL
+    setLightboxImages([{ src: imageUrl }]); // Set the single image as a slide
+    setLightboxIndex(0); // Always start at index 0
+    setLightboxOpen(true); // Open the lightbox
   };
-
   // --- Effect for Initial Load ---
   // Runs once on mount. Assumes getFarmers reference is stable OR changes rarely.
   useEffect(() => {
@@ -113,6 +128,7 @@ export function FarmerList() {
     searchFarmers,
     loading,
     hasMore,
+    fetchInitialFarmers,
     farmers.length,
   ]); // Added farmers.length as proxy
 
@@ -231,17 +247,30 @@ export function FarmerList() {
                   </div>
                   {/* Right side image & actions */}
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    {/* === MODIFIED Image/Placeholder === */}
                     {farmer.image ? (
-                      <Image
-                        src={farmer.image}
-                        alt={farmer.name}
-                        width={500}
-                        height={500}
-                        className="object-cover rounded-full h-10 w-10 border"
-                      />
+                      // Wrap Image in button for click handling
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click through
+                          handleFarmerImageClick(farmer.image!); // Open lightbox
+                        }}
+                        className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg" // Focus style
+                        aria-label={`View image for ${farmer.name}`}
+                      >
+                        <Image
+                          src={farmer.image}
+                          alt={farmer.name}
+                          width={200} // Increased size
+                          height={200} // Increased size
+                          className="object-cover rounded-lg h-36 w-36 border cursor-pointer" // Increased size, added cursor
+                        />
+                      </button>
                     ) : (
-                      placeholderImage(farmer.name)
+                      placeholderImage(farmer.name) // Render larger placeholder
                     )}
+                    {/* Action Buttons */}
                     <div className="flex gap-1 items-center">
                       <Button
                         variant="ghost"
@@ -427,6 +456,21 @@ export function FarmerList() {
           </Button>
         </div>
       )}
+      {/* === ADDED Lightbox Rendering === */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        index={lightboxIndex} // Will always be 0 here
+        slides={lightboxImages}
+        plugins={[Fullscreen, Zoom]} // Keep it simple for single image
+        styles={{ container: { backgroundColor: 'rgba(0, 0, 0, .9)' } }}
+        zoom={{ doubleTapDelay: 200, doubleClickDelay: 300 }}
+        render={{
+          // Optionally hide thumbnails if only one image
+          buttonPrev: () => null,
+          buttonNext: () => null,
+        }}
+      />
     </div>
   );
 }
