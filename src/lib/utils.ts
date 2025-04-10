@@ -88,6 +88,9 @@ export const convertDoc = <T extends { id: string }>(doc: DocumentData): T => {
   if (data.lastVisitDate && data.lastVisitDate instanceof Timestamp) {
     formattedData.lastVisitDate = formatTimestamp(data.lastVisitDate);
   }
+  if (data.lastPurchaseDate && data.lastPurchaseDate instanceof Timestamp) {
+    formattedData.lastPurchaseDate = formatTimestamp(data.lastPurchaseDate);
+  }
 
   return {
     id: doc.id,
