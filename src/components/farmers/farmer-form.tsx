@@ -291,7 +291,8 @@ export function FarmerForm({ farmerId }: FarmerFormProps) {
           image: '', // Temporarily empty
           totalDue: 0,
           totalPaid: 0,
-          lastVisitDate: new Date().toISOString(),
+          lastVisitDate: '',
+          lastPurchaseDate: '',
         });
 
         // If we have an image, upload it with the new farmer ID

@@ -15,6 +15,7 @@ export interface Farmer {
   totalDue: number;
   totalPaid: number;
   lastVisitDate: string;
+  lastPurchaseDate: string;
   createdBy: string;
   createdAt: string;
   // Display fields for original case formatting

@@ -43,6 +43,7 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       | 'totalDue'
       | 'totalPaid'
       | 'lastVisitDate'
+      | 'lastPurchaseDate'
     >
   ) => {
     const newFarmer: Farmer = {
@@ -52,7 +53,8 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       createdBy: 'emp1', // Mock employee ID
       totalDue: 0,
       totalPaid: 0,
-      lastVisitDate: new Date().toISOString(),
+      lastVisitDate: '',
+      lastPurchaseDate: '',
     };
     setFarmers((prev) => [...prev, newFarmer]);
   };
