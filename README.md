@@ -1,6 +1,7 @@
 # 🌱 Agro: Fertilizer Company Management App
 
 A comprehensive web application for fertilizer companies to manage farmer relationships, track crop health, record sales visits, manage purchases, and monitor revenue and lending activities.
+<img width="1160" height="642" alt="Screenshot 2025-08-31 at 3 56 59 PM" src="https://github.com/user-attachments/assets/32deaaf4-ad4d-4b8e-8e89-a2a0c34f6dee" />
 
 ## 🚀 Features
 
