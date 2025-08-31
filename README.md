@@ -142,24 +142,16 @@ src/
 
 ## 🔐 Test Credentials
 
-### Admin Account
-
-- **Phone**: `+91 9876543210`
+- **Phone**: `+918903831084`
+  --**Otp**: 666666
 - **Role**: Admin
 - **Access**: Full system access, dashboard, analytics
-
-### Employee Account
-
-- **Phone**: `+91 9876543211`
-- **Role**: Employee
-- **Access**: Farmer management, visits, purchases
 
 > **Note**: These are test credentials. Replace with actual user data in production.
 
 ## 🌐 Live Demo
 
-- **Production**: [https://your-app.vercel.app](https://your-app.vercel.app)
-- **Staging**: [https://your-app-staging.vercel.app](https://your-app-staging.vercel.app)
+- [https://fertiliser-app.netlify.app/](https://fertiliser-app.
 
 ## 📊 Key Metrics Tracked
 
