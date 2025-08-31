@@ -1,8 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌱 Agro: Fertilizer Company Management App
 
-## Getting Started
+A comprehensive web application for fertilizer companies to manage farmer relationships, track crop health, record sales visits, manage purchases, and monitor revenue and lending activities.
 
-First, run the development server:
+## 🚀 Features
+
+### 👥 Farmer Management
+
+- **Farmer Profiles**: Store farmer information including name, phone, location, zone, and profile images
+- **Crop Tracking**: Associate multiple crops with each farmer
+- **Contact Management**: Maintain farmer contact details and location information
+
+### 🏥 Crop Health Monitoring
+
+- **Health Assessment**: Rate crop health as Good, Average, or Poor
+- **Visit Logging**: Record detailed farm visits with notes and recommendations
+- **Image Documentation**: Capture and store crop images for health assessment
+- **Recommendation Tracking**: Log fertilizer and treatment recommendations
+
+### 💰 Sales & Revenue Management
+
+- **Purchase Tracking**: Record fertilizer sales with item details and quantities
+- **Payment Management**: Track paid amounts, remaining dues, and payment history
+- **Working Combo Tracking**: Monitor special fertilizer combinations and their effectiveness
+- **Revenue Analytics**: Calculate total sales, collections, and pending amounts
+
+### 📊 Dashboard & Analytics
+
+- **Financial Overview**: Real-time tracking of total dues, collections, and pending amounts
+- **Crop Health Statistics**: Visual representation of crop health distribution
+- **Visit Analytics**: Monitor overdue visits and farmer attention requirements
+- **Performance Metrics**: Track employee performance and farmer engagement
+
+### 🔐 User Management
+
+- **Role-based Access**: Admin and Employee roles with different permissions
+- **Authentication**: Secure phone-based login system with OTP verification
+- **User Profiles**: Manage employee information and access levels
+
+### 📱 Progressive Web App
+
+- **Offline Support**: Service worker for offline functionality
+- **Mobile Responsive**: Optimized for mobile devices and field use
+- **Image Management**: Efficient image compression and storage
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS, Radix UI Components
+- **Backend**: Firebase (Firestore, Authentication, Storage)
+- **Forms**: React Hook Form with Zod validation
+- **Charts**: Recharts for data visualization
+- **PWA**: Service Worker for offline capabilities
+
+## 📋 Prerequisites
+
+- Node.js 18+
+- npm, yarn, or pnpm
+- Firebase project with Firestore, Authentication, and Storage enabled
+- Modern web browser with PWA support
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd fertilizer-app
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+### 3. Environment Setup
+
+Create a `.env.local` file in the root directory:
+
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
@@ -10,27 +101,114 @@ npm run dev
 yarn dev
 # or
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔧 Build & Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Build for Production
 
-## Learn More
+```bash
+npm run build
+npm start
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Deploy to Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+vercel --prod
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📱 App Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/                    # Next.js app router
+│   ├── (admin)/          # Admin-only routes
+│   │   └── dashboard/    # Admin dashboard
+│   ├── (auth)/           # Authentication routes
+│   │   └── login/        # Login page
+│   └── (protected)/      # Protected routes
+│       ├── (farmers)/    # Farmer management
+│       ├── visits/       # Visit tracking
+│       ├── purchases/    # Purchase management
+│       └── profile/      # User profile
+├── components/            # Reusable UI components
+├── lib/                   # Utilities and Firebase config
+└── types/                 # TypeScript type definitions
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔐 Test Credentials
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Admin Account
+
+- **Phone**: `+91 9876543210`
+- **Role**: Admin
+- **Access**: Full system access, dashboard, analytics
+
+### Employee Account
+
+- **Phone**: `+91 9876543211`
+- **Role**: Employee
+- **Access**: Farmer management, visits, purchases
+
+> **Note**: These are test credentials. Replace with actual user data in production.
+
+## 🌐 Live Demo
+
+- **Production**: [https://your-app.vercel.app](https://your-app.vercel.app)
+- **Staging**: [https://your-app-staging.vercel.app](https://your-app-staging.vercel.app)
+
+## 📊 Key Metrics Tracked
+
+- **Financial**: Total dues, collections, pending amounts
+- **Operational**: Visit frequency, crop health trends
+- **Performance**: Employee productivity, farmer engagement
+- **Inventory**: Fertilizer sales, working combo effectiveness
+
+## 🔒 Security Features
+
+- Firebase Authentication with phone verification
+- Role-based access control
+- Secure API endpoints
+- Image compression and secure storage
+- Form validation with Zod schemas
+
+## 📱 PWA Features
+
+- Offline functionality
+- Installable on mobile devices
+- Push notifications (configurable)
+- Background sync capabilities
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support and questions:
+
+- **Email**: support@yourcompany.com
+- **Documentation**: [https://docs.yourcompany.com](https://docs.yourcompany.com)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/fertilizer-app/issues)
+
+## 🔄 Version History
+
+- **v0.1.0** - Initial release with core functionality
+- **v0.2.0** - Added dashboard and analytics
+- **v0.3.0** - Enhanced PWA features and offline support
+
+---
+
+**Built with ❤️ for the agricultural community**
